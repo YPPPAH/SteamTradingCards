@@ -11,6 +11,7 @@ import threading
 import datetime
 import sqlite3
 import pickle
+import time
 import os
 
 ##SIZE
@@ -42,13 +43,13 @@ URL="https://store.steampowered.com/login/"
 APP_DIRECTORY="{}\\Documents\\YPPAHSOFT\\".format(Path.home())
 PIKLE_FILE_ACCID=APP_DIRECTORY+"pickle.pkl"
 PIKLE_FILE_COUNTER=APP_DIRECTORY+"pickle2.pkl"
-# PIKLE_FILE_LOGIN=APP_DIRECTORY+"pickle3.pkl"
+PIKLE_FILE_TIME=APP_DIRECTORY+"pickle3.pkl"
 PIKLE_FILE_GRID=APP_DIRECTORY+"pickle4.pkl"
 PIKLE_FILE_IPAGE=APP_DIRECTORY+"pickle5.pkl"
 PIKLE_FILE_PRICE=APP_DIRECTORY+"pickle6.pkl"
 PIKLE_FILE_STOP=APP_DIRECTORY+"pickle7.pkl"
 PIKLE_FILE_COOKIES=APP_DIRECTORY+"pikcle8.pkl"
-BBDD_FILE=APP_DIRECTORY+"cards.db"
+DB_FILE=APP_DIRECTORY+"cards.db"
 ##PRICING
 PRICE_MULTIPLIER=1.40
 
@@ -97,9 +98,9 @@ class Main(Frame):
 
     def All(self):
         self.Clean()
-        ##BBDD
+        ##DB
         self.mylist.insert(END,"|  id  |  Card Name  |  Price  |  Percent  |  Game  |  Date  |  ")
-        connection = sqlite3.connect(BBDD_FILE)
+        connection = sqlite3.connect(DB_FILE)
         cursor = connection.cursor()
         cursor.execute('''SELECT * FROM Cards''')
         select = cursor.fetchall()
@@ -112,8 +113,8 @@ class Main(Frame):
     def Del(self):
         text = self.txtInput1.get()
         if not text=="":
-            ##BBDD
-            connection = sqlite3.connect(BBDD_FILE)
+            ##DB
+            connection = sqlite3.connect(DB_FILE)
             cursor = connection.cursor()
             cursor.execute('''DELETE FROM Cards WHERE id = {}'''.format(text))
             connection.commit()
@@ -124,8 +125,8 @@ class Main(Frame):
 
     def Sel(self):
         self.Clean()
-        ##BBDD
-        connection = sqlite3.connect(BBDD_FILE)
+        ##DB
+        connection = sqlite3.connect(DB_FILE)
         cursor = connection.cursor()
         cursor.execute('''SELECT * FROM Cards''')
         select = cursor.fetchall()
@@ -146,21 +147,15 @@ class Main(Frame):
         return string.replace(",",".")
 
     def Get_inventory_grid(self,driver,num,inventory_url):
-        # print("page1 {}".format(self.Get_page()))
         sleep(0.5)
-        try:
-            self.print_and_console("SEARCHING FOR GRID...")
-            if num == 1:
-                if self.Get_number(driver)%25 == 0:
-                    self.fnd(driver,"//a[@id='pagebtn_next']").click()
-                    self.Set_page(self.Get_page()+1)
-            # print("page2 {}".format(self.Get_page()))
-            invetorygrid = driver.find_elements(By.XPATH,"//div[@class='itemHolder']")
-            invetorygrid[self.Get_number(driver)].click()
-            self.print_and_console("GRID FOUND")
-        except ElementNotInteractableException:
-            # self.GotoPage(driver,inventory_url)##scroll
-            pass
+        self.print_and_console("SEARCHING FOR GRID...")
+        if num == 1:
+            if self.Get_number(driver)%25 == 0:
+                self.fnd(driver,"//a[@id='pagebtn_next']").click()
+                self.Set_page(self.Get_page()+1)
+        invetorygrid = driver.find_elements(By.XPATH,"//div[@class='itemHolder']")
+        invetorygrid[self.Get_number(driver)].click()
+        self.print_and_console("GRID FOUND")
 
     ###COOKIES
     def Set_cookies(self,driver):
@@ -212,32 +207,10 @@ class Main(Frame):
             self.print_and_console("STOP RESETED")
         return text
 
-    def Get_login(self,user,password):
-        self.Create_Dir()
-        try:
-            user.send_keys(self.txtInput1.get())
-            password.send_keys(self.txtInput2.get())
-            # self.print_and_console("SEARCHING FOR PREVIOUS USER...")
-            # with open(PIKLE_FILE_LOGIN,"rb") as piklefile:
-            #     login = pickle.load(piklefile)
-            #     user.send_keys(login[0])
-            #     password.send_keys(login[1])
-            # self.print_and_console("USER FOUND")
-            # pass
-        except FileNotFoundError:
-        #     self.print_and_console("PREVIOUS USER NOT FOUND SEARCHING NEW USER...")
-        #     if self.txtInput1.get()=="" and self.txtInput2.get()=="":
-        #         self.print_and_console("PLEASE IMPUT")
-            pass
-        #     else:
-                # if _user.get()==1:
-                #     login=[self.txtInput1.get(),self.txtInput2.get()]
-                # with open(PIKLE_FILE_LOGIN,"wb") as piklefile:
-                #     pickle.dump(login, piklefile)
-                # self.print_and_console("USER FOUND")
     ###SOLD
     def Get_sold(self):
         self.Create_Dir()
+        #counter
         try:
             self.print_and_console("SEARCHING FOR COUNTER...")
             with open(PIKLE_FILE_COUNTER,"rb") as piklefile:
@@ -249,6 +222,7 @@ class Main(Frame):
             with open(PIKLE_FILE_COUNTER,"wb") as piklefile:
                 pickle.dump(num, piklefile)
             self.print_and_console("COUNTED RESETED")
+        #price
         try:
             self.print_and_console("SEARCHING FOR PRICE...")
             with open(PIKLE_FILE_PRICE,"rb") as piklefile:
@@ -260,19 +234,38 @@ class Main(Frame):
             with open(PIKLE_FILE_PRICE,"wb") as piklefile:
                 pickle.dump(price, piklefile)
             self.print_and_console("PRICE RESETED")
-        return num, price
+        #time
+        try:
+            self.print_and_console("SEARCHING FOR TIME...")
+            with open(PIKLE_FILE_TIME,"rb") as piklefile:
+                time = pickle.load(piklefile)
+            self.print_and_console("TIME FOUND")
+        except FileNotFoundError:
+            self.print_and_console("TIME NOT FOUND SETTING DEFAULT...")
+            time = 0
+            with open(PIKLE_FILE_TIME,"wb") as piklefile:
+                pickle.dump(time, piklefile)
+            self.print_and_console("TIME RESETED")
+        return num, price, time
 
-    def Set_sold(self,nums,price):
+    def Set_sold(self,nums,price,time):
         self.Create_Dir()
         try:
+            #counter
             self.print_and_console("SAVING COUNTER...")
             with open(PIKLE_FILE_COUNTER,"wb") as piklefile:
                 pickle.dump(nums, piklefile)
             self.print_and_console("COUNTER SAVED")
+            #price
             self.print_and_console("SAVING PRICE...")
             with open(PIKLE_FILE_PRICE,"wb") as piklefile:
                 pickle.dump(price, piklefile)
             self.print_and_console("PRICE SAVED")
+            #time
+            self.print_and_console("SAVING TIME...")
+            with open(PIKLE_FILE_TIME,"wb") as piklefile:
+                pickle.dump(time, piklefile)
+            self.print_and_console("TIME SAVED")
         except FileNotFoundError:
             pass
     ###PAGE
@@ -331,70 +324,47 @@ class Main(Frame):
         try:
             self.print_and_console("SAVING CARD NUMBER...")
             with open(PIKLE_FILE_GRID,"wb") as piklefile:
-                # if nums%25 == 0:
-                #     self.fnd(driver,"//a[@id='pagebtn_next']").click()
-                #     self.Set_page(self.Get_page()+1)
                 pickle.dump(nums, piklefile)
             self.print_and_console("CARD SAVED")
         except FileNotFoundError:
             pass
     ###RESET
     def reset_settings(self):
-        # if _accidch.get() == 1:
-        #     self.print_and_console("DELETING ACCID FILE...")
-        #     if os.path.exists(PIKLE_FILE_ACCID):
-        #         os.remove(PIKLE_FILE_ACCID)
-        #         self.print_and_console("DELETED ACCID FILE")
-        #     else:
-        #         self.print_and_console("ACCID FILE NOT FOUND")
-        #         pass
-        if _soldch.get() == 1:
-            self.print_and_console("DELETING COUNTER FILE...")
-            if os.path.exists(PIKLE_FILE_COUNTER):
-                os.remove(PIKLE_FILE_COUNTER)
-                self.print_and_console("DELETED COUTER FILE")
-            else:
-                self.print_and_console("COUNTER FILE NOT FOUND")
-                pass
-            self.print_and_console("DELETING PRICE FILE...")
-            if os.path.exists(PIKLE_FILE_PRICE):
-                os.remove(PIKLE_FILE_PRICE)
-                self.print_and_console("DELETED PRICE FILE")
-            else:
-                self.print_and_console("PRICE FILE NOT FOUND")
-                pass
-        if _loginch.get() == 1:
-            ##log
-            # self.print_and_console("DELETING LOGIN FILE...")
-            # if os.path.exists(PIKLE_FILE_LOGIN):
-            #     os.remove(PIKLE_FILE_LOGIN)
-            #     self.print_and_console("DELETED LOGIN FILE")
-            # else:
-            #     self.print_and_console("LOGIN FILE NOT FOUND")
-            #     pass
-            ##id
-            if os.path.exists(PIKLE_FILE_ACCID):
-                os.remove(PIKLE_FILE_ACCID)
-                self.print_and_console("DELETED ACCID FILE")
-            else:
-                self.print_and_console("ACCID FILE NOT FOUND")
-                pass
-        if _cromoch.get() == 1:
-            ##
-            self.print_and_console("DELETING GRID FILE...")
-            if os.path.exists(PIKLE_FILE_GRID):
-                os.remove(PIKLE_FILE_GRID)
-                self.print_and_console("DELETED GRID FILE")
-            else:
-                self.print_and_console("GRID FILE NOT FOUND")
-                pass
-            self.print_and_console("DELETING PAGE FILE...")
-            if os.path.exists(PIKLE_FILE_IPAGE):
-                os.remove(PIKLE_FILE_IPAGE)
-                self.print_and_console("DELETED PAGE FILE")
-            else:
-                self.print_and_console("PAGE FILE NOT FOUND")
-                pass
+        #counter
+        self.print_and_console("DELETING COUNTER FILE...")
+        if os.path.exists(PIKLE_FILE_COUNTER):
+            os.remove(PIKLE_FILE_COUNTER)
+            self.print_and_console("DELETED COUTER FILE")
+        else:
+            self.print_and_console("COUNTER FILE NOT FOUND")
+        #price
+        self.print_and_console("DELETING PRICE FILE...")
+        if os.path.exists(PIKLE_FILE_PRICE):
+            os.remove(PIKLE_FILE_PRICE)
+            self.print_and_console("DELETED PRICE FILE")
+        else:
+            self.print_and_console("PRICE FILE NOT FOUND")
+        #time
+        self.print_and_console("DELETING TIME FILE...")
+        if os.path.exists(PIKLE_FILE_TIME):
+            os.remove(PIKLE_FILE_TIME)
+            self.print_and_console("DELETED TIME FILE")
+        else:
+            self.print_and_console("TIME FILE NOT FOUND")
+        ##grid
+        self.print_and_console("DELETING GRID FILE...")
+        if os.path.exists(PIKLE_FILE_GRID):
+            os.remove(PIKLE_FILE_GRID)
+            self.print_and_console("DELETED GRID FILE")
+        else:
+            self.print_and_console("GRID FILE NOT FOUND")
+        #page
+        self.print_and_console("DELETING PAGE FILE...")
+        if os.path.exists(PIKLE_FILE_IPAGE):
+            os.remove(PIKLE_FILE_IPAGE)
+            self.print_and_console("DELETED PAGE FILE")
+        else:
+            self.print_and_console("PAGE FILE NOT FOUND")
             
     def sell_redirect(self):
         try:
@@ -406,9 +376,8 @@ class Main(Frame):
         except:
             pass
 
-    def finish_sell(self,driver,price,name,gamename,inventory_url):
+    def finish_sell(self,driver,price,name,gamename,inventory_url,Tstart):
         ##SELLING
-        # self.print_and_console("SELLING AT {}$ ( MarketPrice +{}% )".format(price,str(str(PRICE_MULTIPLIER).split(".")[1])+"0"))
         self.Get_inventory_grid(driver,0,inventory_url)
         try:
             self.fnd(driver,"//div[@id='iteminfo0_item_market_actions']//span[2]").click()##sell btn
@@ -420,7 +389,6 @@ class Main(Frame):
         sleep(0.5)
         inputtext = self.fnd(driver,"//input[@id='market_sell_buyercurrency_input']")##price input
         inputtext.send_keys(price)
-        # self.fnd(driver,"//input[@id='market_sell_dialog_accept_ssa']").click()##checkbox
         sleep(0.5)
         self.fnd(driver,"//a[@id='market_sell_dialog_accept']").click()##btn put for sale 
         if driver.find_element(By.XPATH,("//div[@id='market_sell_dialog_error']")).text == "You must agree to the terms of the Steam Subscriber Agreement to sell this item.":
@@ -435,10 +403,10 @@ class Main(Frame):
         else:
             sleep(0.5)
             if driver.find_element(By.XPATH,("//div[@id='market_sell_dialog_error']")).text == "You have too many listings pending confirmation. Please confirm or cancel some before attempting to list more.":
-                self.Stop(True)
+                self.Stop()
                 self.Clean()
                 self.mylist.insert(END,"***************************************************MAX CONFIRMATIONS REACHED***********************************************")
-                self.mylist.insert(END,"*********************************************PLEASE CONFIRM THE CARDS TO CONTINUE******************************************")
+                self.mylist.insert(END,"*********************************************PLEASE CONFIRM THE CARDS AND RESTART******************************************")
             else:
                 sleep(0.5)
                 try:
@@ -446,11 +414,13 @@ class Main(Frame):
                 except:
                     self.fnd(driver,"//div[@class='newmodal_header']//div").click()
                 #saving
-                self.Set_sold(self.Get_sold()[0]+1,self.lblPrice["text"])
+                self.Set_sold(self.Get_sold()[0]+1,self.lblPrice["text"],round((time.time() - Tstart)+float(self.lblTime["text"]),2))
                 self.lblCounter["text"]=(self.Get_sold()[0])
+                self.lblTime["text"] = self.Get_sold()[2]
+                self.lblPrice["text"] = round(float(self.lblPrice["text"])+price,2)
                 self.Set_number(self.Get_number(driver)+1,driver)
-                ##BBDD
-                connection = sqlite3.connect(BBDD_FILE)
+                ##DB
+                connection = sqlite3.connect(DB_FILE)
                 cursor = connection.cursor()
                 cursor.execute('''SELECT id FROM Cards ORDER BY id DESC LIMIT 1''')
                 select = cursor.fetchall()
@@ -461,7 +431,6 @@ class Main(Frame):
                     number = 0
                 if not "number" in locals():
                     number = 0
-                self.lblPrice["text"] = round(float(self.lblPrice["text"])+price,2)
                 gamename = gamename.replace(" Trading Card","")
                 dt = datetime.datetime.today()
                 date = "{}-{}-{}".format(dt.day,dt.month,dt.year)
@@ -475,9 +444,22 @@ class Main(Frame):
                 cursor.close()
                 connection.close()
                 self.mylist.see("end")
-                #BBDD
+                #DB
                 self.print_and_console("SOLD")
                 sleep(0.5)
+
+    def info(self):
+        self.Clean()
+        self.mylist.insert(END,"Sel-> Selects from the db the registres by game name, introduced in the user input")
+        self.mylist.insert(END,"Del-> Deletes from the db the registry with the introduced id")
+        self.mylist.insert(END,"C-> Cleans the Console")
+        self.mylist.insert(END,"All-> Selects all registres from the db")
+        self.mylist.insert(END,"LOGIN-> Input acc to sell cards and input 2FA if enabled")
+        self.mylist.insert(END,"START-> Starts selling")
+        self.mylist.insert(END,"Restart-> Resets all values to start over")
+        self.mylist.insert(END,"Stop-> Stops selling when finishes the actual card")
+        self.mylist.insert(END,"Quit-> Quits the program, please press stop before pressing this to avoid issues")
+        self.mylist.insert(END,"ESTIMATED TIME 30m -> 250 cards (comfirmation cap)")
 
     def GotoPage(self,driver,inventory_url):
         driver.get(inventory_url)##load inv
@@ -529,7 +511,8 @@ class Main(Frame):
         driver.get(URL)
         user = self.fnd(driver,"//input[@id='input_username']")
         password = self.fnd(driver,"//input[@id='input_password']")
-        self.Get_login(user,password)
+        user.send_keys(self.txtInput1.get())
+        password.send_keys(self.txtInput2.get())
         self.fndcn(driver,'login_btn').click()
         sleep(3)
         self.print_and_console("2FA...")
@@ -555,17 +538,18 @@ class Main(Frame):
 
     def cromos_sell(self):
         try:
-            if not os.path.exists(BBDD_FILE):
+            if not os.path.exists(DB_FILE):
                 self.Create_Dir()
-                ##BBDD
-                connection = sqlite3.connect(BBDD_FILE)
+                ##DB
+                connection = sqlite3.connect(DB_FILE)
                 cursor = connection.cursor()
                 cursor.execute('''CREATE TABLE IF NOT EXISTS Cards (id INT PRIMARY KEY,Name TEXT, Price FLOAT, Percent INT, Game TEXT, Date TEXT)''')
                 connection.commit()
                 connection.close()
-            self.reset_settings()
+            self.Clean()
             self.lblCounter["text"]=(self.Get_sold()[0])
             self.lblPrice["text"]=(self.Get_sold()[1])
+            self.lblTime["text"]=(self.Get_sold()[2])
             ##---load window and login
             driver = webdriver.Firefox()
             driver.get("https://steamcommunity.com/")
@@ -591,6 +575,7 @@ class Main(Frame):
                 self.Set_cookies(driver)
             for x in range(10000):
                 if self.Get_stop()==False:
+                    Tstart = time.time()
                     self.Get_inventory_grid(driver,1,inventory_url)
                     name = ["",""]
                     gname = ["",""]
@@ -649,20 +634,21 @@ class Main(Frame):
                             except:
                                 pass
                         price = str(text.split(" ")[1])
-                        price = round(float(self.Replace(price))*PRICE_MULTIPLIER,2)
-                        self.print_and_console("PRICE FOUND")
-                        driver.switch_to.window(driver.window_handles[0])
-                        self.finish_sell(driver, price, card_namea, game_name, inventory_url)
+                        try:
+                            price = round(float(self.Replace(price))*PRICE_MULTIPLIER,2)
+                            self.print_and_console("PRICE FOUND")
+                            driver.switch_to.window(driver.window_handles[0])
+                            self.finish_sell(driver, price, card_namea, game_name, inventory_url,Tstart)
+                        except ValueError:
+                            self.Set_number(self.Get_number(driver)+1,driver)
                     else:
                         card_nameb = card_namea
-                        self.finish_sell(driver, price, card_namea, game_name, inventory_url)
+                        self.finish_sell(driver, price, card_namea, game_name, inventory_url,Tstart)
                 else:
                     self.print_and_console("***STOPED***")
                     break
         except InvalidSessionIdException:
             self.print_and_console("BROWSER CONNECTION LOST")
-        except EOFError:
-            messagebox.showerror(title="Error", message="Delete Grid")
         # except:
         #     self.print_and_console("*********UNEXPECTED ERROR*********")
         #     messagebox.showerror(title="Error", message="Unexpected error")
@@ -671,7 +657,7 @@ class Main(Frame):
         
     def create_widgets(self):
         ###Title
-        self.lblTitle = Label(self,text="CROMOS")
+        self.lblTitle = Label(self,text="CARDS")
         self.lblTitle.place(x=POS_COL1_X,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
         ###Start
         self.btnStart = Button(self,text="Start", command=self.sell_redirect)
@@ -679,9 +665,15 @@ class Main(Frame):
         ###Quit
         self.btnQuit = Button(self,text="Quit", command=self.Quit)
         self.btnQuit.place(x=POS_COL6_X,y=POS_ROW3_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
-        ###Quit
+        ###Stop
         self.btnStop = Button(self,text="Stop", command=self.Stop)
         self.btnStop.place(x=POS_COL6_X,y=POS_ROW2_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        ###Restart
+        self.btnRestart = Button(self,text="Restart", command=self.reset_settings)
+        self.btnRestart.place(x=POS_COL6_X,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        ###info
+        self.btnRestart = Button(self,text="i", command=self.info)
+        self.btnRestart.place(x=POS_COL4_X,y=POS_ROW1_Y,width=NORMAL_WIDTH/2-20, height=NORMAL_HEIGTH)
         ###Buttons
         ##line
         self.lblLine1 = Label(self,text="", borderwidth=2, relief="groove")
@@ -699,9 +691,9 @@ class Main(Frame):
         self.btndel = Button(self,text="Del", command=self.Del)
         self.btndel.place(x=POS_COL1_X+60,y=POS_ROW2_Y,width=(NORMAL_WIDTH-20)/2, height=NORMAL_HEIGTH)
         ###LOGIN
-        ##save
-        self.checkbox1 = Checkbutton(self, text="SAVE", variable=_user,onvalue=1, offvalue=0)
-        self.checkbox1.place(x=POS_COL2_X,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        ##text
+        self.Label1 = Label(self, text="LOGIN")
+        self.Label1.place(x=POS_COL2_X,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
         ##inputs
         self.txtInput1=Entry(self)
         self.txtInput1.place(x=POS_COL2_X,y=POS_ROW2_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
@@ -719,36 +711,30 @@ class Main(Frame):
         self.scrollbar = Scrollbar(root)
         self.mylist = Listbox(root, yscrollcommand = self.scrollbar.set )
         self.mylist.place(x=POS_COL1_X,y=POS_ROW4_Y,width=NORMAL_WIDTH*7, height=NORMAL_HEIGTH*6)
+        self.info()
         self.scrollbar.config( command = self.mylist.yview )
         self.scrollbar.place(x=POS_COL7_X-POX_X_SPACING,y=POS_ROW4_Y,width=POX_X_SPACING, height=NORMAL_HEIGTH*6)
-        ###Counter 
-        ##sold
+        ####Counter 
+        ###sold
+        self.Label1 = Label(self, text="CARDS DONE")
+        self.Label1.place(x=POS_COL4_X,y=POS_ROW3_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
         self.lblCounter = Label(self,text="0", borderwidth=2, relief="groove")
         self.lblCounter.place(x=POS_COL5_X,y=POS_ROW3_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
-        ##price
+        ###price
+        self.Label2 = Label(self, text="CUR. TOTAL PRICE")
+        self.Label2.place(x=POS_COL4_X,y=POS_ROW2_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
         self.lblPrice = Label(self,text="0", borderwidth=2, relief="groove")
         self.lblPrice.place(x=POS_COL5_X,y=POS_ROW2_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
-        ###Reset
-        ##LINEAS
-        self.lblLine2 = Label(self,text="", borderwidth=2, relief="groove")
-        self.lblLine2.place(x=POS_COL4_X-5,y=POS_ROW1_Y-5,width=NORMAL_WIDTH+10, height=NORMAL_HEIGTH*4.60)
-        ##CHEKBOX
-        self.checkbox6 = Checkbutton(self, text="LOG", variable=_loginch,onvalue=1, offvalue=0)
-        self.checkbox6.place(x=POS_COL4_X,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
-        self.checkbox5 = Checkbutton(self, text="COUNTER", variable=_soldch,onvalue=1, offvalue=0)
-        self.checkbox5.place(x=POS_COL4_X,y=POS_ROW2_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
-        self.checkbox7 = Checkbutton(self, text="GRID", variable=_cromoch,onvalue=1, offvalue=0)
-        self.checkbox7.place(x=POS_COL4_X,y=POS_ROW3_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
-
+        ##time
+        self.Label3 = Label(self, text="TIME")
+        self.Label3.place(x=POS_COL4_X+50,y=POS_ROW1_Y,width=NORMAL_WIDTH/2, height=NORMAL_HEIGTH)
+        self.lblTime = Label(self,text="0", borderwidth=2, relief="groove")
+        self.lblTime.place(x=POS_COL5_X,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
 
 
 root = Tk()
 chekbox = IntVar()
-_soldch = IntVar() 
-_loginch = IntVar() 
-_cromoch = IntVar() 
-_user = IntVar()
-root.wm_title("V1.1.0")
+root.wm_title("V1.1.2")
 root.resizable(width=False, height=False)
 # root.configure(background='#1e1e1e')
 app = Main(root)
