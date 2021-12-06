@@ -150,7 +150,7 @@ class Main(Frame):
         sleep(0.5)
         self.print_and_console("SEARCHING FOR GRID...")
         if num == 1:
-            if self.Get_number(driver)%25 == 0:
+            if self.Get_number(driver)%25 == 0 and self.Get_number(driver)!=0:
                 self.fnd(driver,"//a[@id='pagebtn_next']").click()
                 self.Set_page(self.Get_page()+1)
         invetorygrid = driver.find_elements(By.XPATH,"//div[@class='itemHolder']")
@@ -516,20 +516,16 @@ class Main(Frame):
         self.fndcn(driver,'login_btn').click()
         sleep(3)
         self.print_and_console("2FA...")
-        if chekbox.get() == 1:
-            _2fa = self.txtInput3.get()
-            if _2fa!="":
-                try:
-                    twofactor = self.fnd(driver,"//input[@id='twofactorcode_entry']")
-                    twofactor.send_keys(_2fa)
-                except:
-                    self.print_and_console("NO 2FA FOUND")
-                    pass
-            else:
-                self.print_and_console("NO USER INPUT")
+        _2fa = self.txtInput3.get()
+        if _2fa!="":
+            try:
+                twofactor = self.fnd(driver,"//input[@id='twofactorcode_entry']")
+                twofactor.send_keys(_2fa)
+            except:
+                self.print_and_console("NO 2FA FOUND")
                 pass
         else:
-            self.print_and_console("NO 2FA CHECKBOX SELECTED")
+            self.print_and_console("NO USER INPUT")
             pass
         self.print_and_console("2FA DONE")
         self.fnds(driver,"//div[@id='login_twofactorauth_buttonset_entercode']//div")[0].click()
@@ -566,6 +562,9 @@ class Main(Frame):
             inventory_url = "{}/inventory/#753".format(self.Get_accid(driver))
             driver.implicitly_wait(3)
             #---start doing sells
+            self.GotoPage(driver,inventory_url)##load inv & scroll
+            driver.execute_script('''ChangeLanguage( 'english' );''')
+            sleep(1)
             self.GotoPage(driver,inventory_url)##load inv & scroll
             self.Set_stop(False)
             card_nameb = None
@@ -701,7 +700,7 @@ class Main(Frame):
         self.txtInput2.place(x=POS_COL2_X,y=POS_ROW3_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
         ###2FA
         ##checkbox
-        self.checkbox3 = Checkbutton(self, text="2FA:", variable=chekbox,onvalue=1, offvalue=0)
+        self.checkbox3 = Label(self, text="2FA")
         self.checkbox3.place(x=POS_COL3_X,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
         ##input
         self.txtInput3=Entry(self)
