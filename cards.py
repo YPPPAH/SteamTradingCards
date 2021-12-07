@@ -412,7 +412,10 @@ class Main(Frame):
                 try:
                     driver.find_element(By.XPATH,"//div[@class='newmodal_buttons']//span").click()##2fa x btn 
                 except:
-                    self.fnd(driver,"//div[@class='newmodal_header']//div").click()
+                    try:
+                        self.fnd(driver,"//div[@class='newmodal_header']//div").click()
+                    except:
+                        pass
                 #saving
                 self.Set_sold(self.Get_sold()[0]+1,self.lblPrice["text"],round((time.time() - Tstart)+float(self.lblTime["text"]),2))
                 self.lblCounter["text"]=(self.Get_sold()[0])
@@ -531,7 +534,7 @@ class Main(Frame):
         self.fnds(driver,"//div[@id='login_twofactorauth_buttonset_entercode']//div")[0].click()
 
     ###-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------###
-
+    
     def cromos_sell(self):
         try:
             if not os.path.exists(DB_FILE):
@@ -732,8 +735,7 @@ class Main(Frame):
 
 
 root = Tk()
-chekbox = IntVar()
-root.wm_title("V1.1.2")
+root.wm_title("V1.1.3")
 root.resizable(width=False, height=False)
 # root.configure(background='#1e1e1e')
 app = Main(root)
