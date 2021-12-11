@@ -1,17 +1,22 @@
-from selenium.common.exceptions import InvalidArgumentException, InvalidSessionIdException, ElementClickInterceptedException, ElementNotInteractableException
-from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import InvalidSessionIdException
 from selenium.webdriver.common.by import By
+from requests_html import HTMLSession
 from difflib import SequenceMatcher
 from tkinter import messagebox
 from selenium import webdriver
 from pathlib import Path
 from time import sleep
 from tkinter import *
+# import webbrowser
 import threading 
 import datetime
+import logging
 import sqlite3
 import pickle
+# import psutil
+import ctypes
 import time
+# import sys
 import os
 
 ##SIZE
@@ -35,395 +40,215 @@ POS_ROW4_Y=(POX_Y_SPACING*4)+(NORMAL_HEIGTH*3)
 POS_ROW5_Y=(POX_Y_SPACING*5)+(NORMAL_HEIGTH*4)
 POS_ROW6_Y=(POX_Y_SPACING*6)+(NORMAL_HEIGTH*5)
 POS_ROW7_Y=(POX_Y_SPACING*7)+(NORMAL_HEIGTH*6)
-##WINDOW
-WINDOW_WIDTH=(POX_X_SPACING*7)+(NORMAL_WIDTH*6)
-WINDOW_HEIGTH=(POX_Y_SPACING*8)+(NORMAL_HEIGTH*7)
+##WINDOWS
+CARDS_WIDTH=(POX_X_SPACING*7)+(NORMAL_WIDTH*6)
+CARDS_HEIGTH=(POX_Y_SPACING*8)+(NORMAL_HEIGTH*7)
+LOGIN_WIDTH=(POX_X_SPACING*3)+(NORMAL_WIDTH*2)
+LOGIN_HEIGHT=(POX_Y_SPACING*5)+(NORMAL_HEIGTH*4)
+SETTINGS_WIDTH=(POX_Y_SPACING*8)+(NORMAL_HEIGTH*7)
+SETTINGS_HEIGHT=int(POX_X_SPACING*3.5)+(NORMAL_WIDTH*3)
+##VERSION
+VERSION="V1.15"
 ##CREDENTIALS
 URL="https://store.steampowered.com/login/"
-APP_DIRECTORY="{}\\Documents\\YPPAHSOFT\\".format(Path.home())
-PIKLE_FILE_ACCID=APP_DIRECTORY+"pickle.pkl"
-PIKLE_FILE_COUNTER=APP_DIRECTORY+"pickle2.pkl"
-PIKLE_FILE_TIME=APP_DIRECTORY+"pickle3.pkl"
-PIKLE_FILE_GRID=APP_DIRECTORY+"pickle4.pkl"
-PIKLE_FILE_IPAGE=APP_DIRECTORY+"pickle5.pkl"
-PIKLE_FILE_PRICE=APP_DIRECTORY+"pickle6.pkl"
-PIKLE_FILE_STOP=APP_DIRECTORY+"pickle7.pkl"
-PIKLE_FILE_COOKIES=APP_DIRECTORY+"pikcle8.pkl"
-DB_FILE=APP_DIRECTORY+"cards.db"
 ##PRICING
 PRICE_MULTIPLIER=1.40
+##SETTINGS
+SETTINGS_FILE = f"{Path.home()}\\Documents\\YPPAHSOFT\\settings.pkl"
+if os.path.exists(SETTINGS_FILE):
+   with open(SETTINGS_FILE,"rb") as piklefile:
+        SETTINGS = pickle.load(piklefile)
+else:
+    APP_DIRECTORY=f"{Path.home()}\\Documents\\YPPAHSOFT\\"
+    SETTINGS = {
+        "ACCID": None,
+        "COUNTER": 0,
+        "TIME": 0,
+        "GRID": 0,
+        "IPAGE": 0,
+        "PRICE": 0,
+        "STOP": False,
+        "COOKIES": [],
+        "S_DB_FILE": f"{Path.home()}\\Documents\\YPPAHSOFT\\cards.db",
+        "APP_DIRECTORY": APP_DIRECTORY,
+        "BG_COLOR": "SystemButtonFace",#'#1e1e1e'
+        "TXT_COLOR": "black",#'white'
+        "NAME": "",
+        "VERSION_CD": None
+    }
+    if not os.path.exists(APP_DIRECTORY):
+        os.mkdir(APP_DIRECTORY)
+    # with open(SETTINGS_FILE,"wb") as piklefile:
+    #     pickle.dump(SETTINGS, piklefile)
 
-class Main(Frame):
+# if (SETTINGS["VERSION_CD"] == None or time.time()-SETTINGS["VERSION_CD"]) > 86400:
+#     UPDATES_URL="https://github.com/YPPPAH/SteamTradingCards"
+#     session = HTMLSession()
+#     request = session.get(UPDATES_URL)
+#     version = request.html.find("#repo-content-pjax-container", first=True).find(".markdown-title", first=True).text
+#     if version != None:
+#         if float(version) > VERSION:
+#             messagebox.showwarning('', 'There is a newer version of the bot')
+#             SETTINGS["VERSION_CD"]=time.time()
 
-    def __init__(self, master=None):
-        super().__init__(master,width=WINDOW_WIDTH, height=WINDOW_HEIGTH)
-        self.master = master
-        self.pack()
-        self.create_widgets()
-        
+
+class Main():
+
     ###-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------###
+    ##console
+    def Clean():
+        mylist.delete(0,END)
 
-    def Quit(self):
-        exit()
+    def print_console(text):
+        mylist.insert(END, text)
 
-    def print_and_console(self,text):
-        print(text)
-
-    def print_console(self,text):
-        self.mylist.insert(END, text)
-
-    def Create_Dir(self):
-        try:
-            os.mkdir(APP_DIRECTORY)
-        except FileExistsError:
-            pass
-
-    def Get_accid(self,driver):
-        self.Create_Dir()
-        try:
-            self.print_and_console("SEARCHING FOR PREVIOUS ID...")
-            with open(PIKLE_FILE_ACCID,"rb") as piklefile:
-                _accid = pickle.load(piklefile)
-            self.print_and_console("ID RECOVERED")
-        except FileNotFoundError:
-            self.print_and_console("PREVIOUS USER NOT FOUND SEARCHING NEW ID...")
-            _accid = self.fnds(driver,"//div[@id='global_actions']//a")[-1].get_attribute("href")
-            with open(PIKLE_FILE_ACCID,"wb") as piklefile:
-                pickle.dump(_accid, piklefile)
-            self.print_and_console("ID RECOVERED")
-        return _accid
-    
-    def Clean(self):
-        self.mylist.delete(0,END)
-
-    def All(self):
-        self.Clean()
+    def All():
+        Main.Clean()
         ##DB
-        self.mylist.insert(END,"|  id  |  Card Name  |  Price  |  Percent  |  Game  |  Date  |  ")
-        connection = sqlite3.connect(DB_FILE)
+        mylist.insert(END,"|  id  |  Card Name  |  Price  |  Percent  |  Game  |  Date  |  ")
+        connection = sqlite3.connect(SETTINGS["S_DB_FILE"])
         cursor = connection.cursor()
         cursor.execute('''SELECT * FROM Cards''')
         select = cursor.fetchall()
         for doc in select:
-            self.mylist.insert(END, "| nº{} | {} | ARS${} | {}% | {} | {} |".format(doc[0],doc[1],doc[2],doc[3],doc[4],doc[5]))
+            mylist.insert(END, "| nº{} | {} | ARS${} | {}% | {} | {} |".format(doc[0],doc[1],doc[2],doc[3],doc[4],doc[5]))
         connection.commit()
         connection.close()
-        self.mylist.see("end")
+        mylist.see("end")
 
-    def Del(self):
-        text = self.txtInput1.get()
-        if not text=="":
+    def Del():
+        text = txtInput1.get()
+        if text!="":
             ##DB
-            connection = sqlite3.connect(DB_FILE)
+            connection = sqlite3.connect(SETTINGS["S_DB_FILE"])
             cursor = connection.cursor()
             cursor.execute('''DELETE FROM Cards WHERE id = {}'''.format(text))
             connection.commit()
             connection.close()
-            self.All()
+            Main.All()
         else:
-            self.print_and_console("***NOT FOUND***")
+            Main.print_and_console("***NOT FOUND***")
 
-    def Sel(self):
-        self.Clean()
+    def Sel():
+        Main.Clean()
         ##DB
-        connection = sqlite3.connect(DB_FILE)
+        connection = sqlite3.connect(SETTINGS["S_DB_FILE"])
         cursor = connection.cursor()
         cursor.execute('''SELECT * FROM Cards''')
         select = cursor.fetchall()
         for doc in select:
-            if self.compare(self.txtInput1.get(),doc[4])>0.7:
-                self.mylist.insert(END, "| nº{} | {} | ARS${} | {}% | {} | {} |".format(doc[0],doc[1],doc[2],doc[3],doc[4],doc[5]))
+            if Main.compare(txtInput1.get(),doc[4])>0.7:
+                mylist.insert(END, "| nº{} | {} | ARS${} | {}% | {} | {} |".format(doc[0],doc[1],doc[2],doc[3],doc[4],doc[5]))
         connection.commit()
         connection.close()
 
-    def Stop(self):
-        self.Set_stop(True)
-        
+    def Quit():
+        exit()
 
-    def compare(self,dbtext,imtext):
+    def print_and_console(text):
+        print(text)
+        
+    def compare(dbtext,imtext):
         return SequenceMatcher(None, dbtext, imtext).ratio()
 
-    def Replace(self, string):
+    def Replace(string):
         return string.replace(",",".")
 
-    def Get_inventory_grid(self,driver,num,inventory_url):
+    def Get_inventory_grid(driver,num):
         sleep(0.5)
-        self.print_and_console("SEARCHING FOR GRID...")
+        Main.print_and_console("SEARCHING FOR GRID...")
         if num == 1:
-            if self.Get_number(driver)%25 == 0 and self.Get_number(driver)!=0:
-                self.fnd(driver,"//a[@id='pagebtn_next']").click()
-                self.Set_page(self.Get_page()+1)
+            if Main.Get_number(driver)%25 == 0 and Main.Get_number(driver)!=0:
+                Main.fnd(driver,"//a[@id='pagebtn_next']").click()
+                SETTINGS["IPAGE"]+=1
         invetorygrid = driver.find_elements(By.XPATH,"//div[@class='itemHolder']")
-        invetorygrid[self.Get_number(driver)].click()
-        self.print_and_console("GRID FOUND")
+        invetorygrid[Main.Get_number(driver)].click()
+        Main.print_and_console("GRID FOUND")
 
-    ###COOKIES
-    def Set_cookies(self,driver):
-        self.Create_Dir()
-        try:
-            self.print_and_console("SAVING COOKIES...")
-            with open(PIKLE_FILE_COOKIES,"wb") as piklefile:
-                pickle.dump(driver.get_cookies(), piklefile)
-            self.print_and_console("COOKIES SAVED")
-        except FileNotFoundError:
-            pass
-
-    def Get_cookies(self,driver):
-        self.Create_Dir()
-        try:
-            self.print_and_console("SEARCHING COOKIES...")
-            with open(PIKLE_FILE_COOKIES,"rb") as piklefile:
-                cookies = pickle.load(piklefile)
-                for cookie in cookies:
-                    driver.add_cookie(cookie)
-            self.print_and_console("COOKIES FOUND")
-        except FileNotFoundError:
-            self.print_and_console("NO COOKIES FOUND")
+    def Get_cookies(driver):
+        for cookie in SETTINGS["COOKIES"]:
+            driver.add_cookie(cookie)
         return driver
 
-    ###STOP
-    def Set_stop(self,text):
-        self.Create_Dir()
-        try:
-            self.print_and_console("SAVING STOP...")
-            with open(PIKLE_FILE_STOP,"wb") as piklefile:
-                pickle.dump(text, piklefile)
-            self.print_and_console("STOP SAVED")
-        except FileNotFoundError:
-            pass
-
-    def Get_stop(self):
-        self.Create_Dir()
-        try:
-            self.print_and_console("SEARCHING STOP...")
-            with open(PIKLE_FILE_STOP,"rb") as piklefile:
-                text = pickle.load(piklefile)
-            self.print_and_console("STOP FOUND")
-        except FileNotFoundError:
-            self.print_and_console("STOP NOT FOUND SETTING DEFAULT...")
-            text = False
-            with open(PIKLE_FILE_STOP,"wb") as piklefile:
-                pickle.dump(text, piklefile)
-            self.print_and_console("STOP RESETED")
-        return text
-
-    ###SOLD
-    def Get_sold(self):
-        self.Create_Dir()
-        #counter
-        try:
-            self.print_and_console("SEARCHING FOR COUNTER...")
-            with open(PIKLE_FILE_COUNTER,"rb") as piklefile:
-                num = pickle.load(piklefile)
-            self.print_and_console("COUNTER FOUND")
-        except FileNotFoundError:
-            self.print_and_console("COUNTER NOT FOUND SETTING DEFAULT...")
-            num = 0
-            with open(PIKLE_FILE_COUNTER,"wb") as piklefile:
-                pickle.dump(num, piklefile)
-            self.print_and_console("COUNTED RESETED")
-        #price
-        try:
-            self.print_and_console("SEARCHING FOR PRICE...")
-            with open(PIKLE_FILE_PRICE,"rb") as piklefile:
-                price = pickle.load(piklefile)
-            self.print_and_console("PRICE FOUND")
-        except FileNotFoundError:
-            self.print_and_console("PRICE NOT FOUND SETTING DEFAULT...")
-            price = 0
-            with open(PIKLE_FILE_PRICE,"wb") as piklefile:
-                pickle.dump(price, piklefile)
-            self.print_and_console("PRICE RESETED")
-        #time
-        try:
-            self.print_and_console("SEARCHING FOR TIME...")
-            with open(PIKLE_FILE_TIME,"rb") as piklefile:
-                time = pickle.load(piklefile)
-            self.print_and_console("TIME FOUND")
-        except FileNotFoundError:
-            self.print_and_console("TIME NOT FOUND SETTING DEFAULT...")
-            time = 0
-            with open(PIKLE_FILE_TIME,"wb") as piklefile:
-                pickle.dump(time, piklefile)
-            self.print_and_console("TIME RESETED")
-        return num, price, time
-
-    def Set_sold(self,nums,price,time):
-        self.Create_Dir()
-        try:
-            #counter
-            self.print_and_console("SAVING COUNTER...")
-            with open(PIKLE_FILE_COUNTER,"wb") as piklefile:
-                pickle.dump(nums, piklefile)
-            self.print_and_console("COUNTER SAVED")
-            #price
-            self.print_and_console("SAVING PRICE...")
-            with open(PIKLE_FILE_PRICE,"wb") as piklefile:
-                pickle.dump(price, piklefile)
-            self.print_and_console("PRICE SAVED")
-            #time
-            self.print_and_console("SAVING TIME...")
-            with open(PIKLE_FILE_TIME,"wb") as piklefile:
-                pickle.dump(time, piklefile)
-            self.print_and_console("TIME SAVED")
-        except FileNotFoundError:
-            pass
-    ###PAGE
-    def Set_page(self,nums):
-        self.Create_Dir()
-        try:
-            self.print_and_console("SAVING PAGE...")
-            with open(PIKLE_FILE_IPAGE,"wb") as piklefile:
-                pickle.dump(nums, piklefile)
-            self.print_and_console("PAGE SAVED")
-        except FileNotFoundError:
-            pass
-
-    def Get_page(self):
-        self.Create_Dir()
-        try:
-            self.print_and_console("SEARCHING PAGE...")
-            with open(PIKLE_FILE_IPAGE,"rb") as piklefile:
-                num = pickle.load(piklefile)
-            self.print_and_console("PAGE FOUND")
-        except FileNotFoundError:
-            self.print_and_console("PAGE NOT FOUND SETTING DEFAULT...")
-            num = 0
-            with open(PIKLE_FILE_IPAGE,"wb") as piklefile:
-                pickle.dump(num, piklefile)
-            self.print_and_console("PAGE RESETED")
-        return num
-    ###NUMBER
-    def Get_number(self,driver):
-        self.Create_Dir()
-        try:
-            self.print_and_console("SEARCHING CARD NUMBER...")
-            with open(PIKLE_FILE_GRID,"rb") as piklefile:
-                num = pickle.load(piklefile)
-            self.print_and_console("CARD NUMBER FOUND")
-        except FileNotFoundError:
-            self.print_and_console("NOT FOUND SETTING DEFAULT...")
+    def Get_number(driver):
+        if SETTINGS["GRID"] == 0:
             try:
-                sleep(1)
                 gems = driver.find_element(By.XPATH,"//h1[@id='iteminfo1_item_name']").text.split(" ")[1]
                 if gems == "Gems" or gems == "Gemas":
-                    num = 1
+                    SETTINGS["GRID"] = 1
                 else:
-                    num = 0
-                with open(PIKLE_FILE_GRID,"wb") as piklefile:
-                    pickle.dump(num, piklefile)
+                    SETTINGS["GRID"] = 0
             except IndexError:
-                num = 0
-                with open(PIKLE_FILE_GRID,"wb") as piklefile:
-                    pickle.dump(num, piklefile)
-            self.print_and_console("NUMBER RESETTED")
-        return num
+                SETTINGS["GRID"] = 0
+        return SETTINGS["GRID"]
 
-    def Set_number(self,nums,driver):
-        self.Create_Dir()
+    def reset_settings():
+        SETTINGS["COUNTER"]=0
+        SETTINGS["TIME"]=0
+        SETTINGS["GRID"]=0
+        SETTINGS["IPAGE"]=0
+        SETTINGS["PRICE"]=0
+     
+    def sell_redirect():
         try:
-            self.print_and_console("SAVING CARD NUMBER...")
-            with open(PIKLE_FILE_GRID,"wb") as piklefile:
-                pickle.dump(nums, piklefile)
-            self.print_and_console("CARD SAVED")
-        except FileNotFoundError:
-            pass
-    ###RESET
-    def reset_settings(self):
-        #counter
-        self.print_and_console("DELETING COUNTER FILE...")
-        if os.path.exists(PIKLE_FILE_COUNTER):
-            os.remove(PIKLE_FILE_COUNTER)
-            self.print_and_console("DELETED COUTER FILE")
-        else:
-            self.print_and_console("COUNTER FILE NOT FOUND")
-        #price
-        self.print_and_console("DELETING PRICE FILE...")
-        if os.path.exists(PIKLE_FILE_PRICE):
-            os.remove(PIKLE_FILE_PRICE)
-            self.print_and_console("DELETED PRICE FILE")
-        else:
-            self.print_and_console("PRICE FILE NOT FOUND")
-        #time
-        self.print_and_console("DELETING TIME FILE...")
-        if os.path.exists(PIKLE_FILE_TIME):
-            os.remove(PIKLE_FILE_TIME)
-            self.print_and_console("DELETED TIME FILE")
-        else:
-            self.print_and_console("TIME FILE NOT FOUND")
-        ##grid
-        self.print_and_console("DELETING GRID FILE...")
-        if os.path.exists(PIKLE_FILE_GRID):
-            os.remove(PIKLE_FILE_GRID)
-            self.print_and_console("DELETED GRID FILE")
-        else:
-            self.print_and_console("GRID FILE NOT FOUND")
-        #page
-        self.print_and_console("DELETING PAGE FILE...")
-        if os.path.exists(PIKLE_FILE_IPAGE):
-            os.remove(PIKLE_FILE_IPAGE)
-            self.print_and_console("DELETED PAGE FILE")
-        else:
-            self.print_and_console("PAGE FILE NOT FOUND")
-            
-    def sell_redirect(self):
-        try:
-            thread = threading.Thread(target=self.cromos_sell)
+            thread = threading.Thread(target=Main.cromos_sell)
             if not thread.is_alive():
                 thread.start()
             else:
-                self.cromos_sell()
+                Main.cromos_sell()
         except:
             pass
 
-    def finish_sell(self,driver,price,name,gamename,inventory_url,Tstart):
+    def finish_sell(driver,price,name,gamename,inventory_url,Tstart):
         ##SELLING
-        self.Get_inventory_grid(driver,0,inventory_url)
+        Main.Get_inventory_grid(driver,0,inventory_url)
         try:
-            self.fnd(driver,"//div[@id='iteminfo0_item_market_actions']//span[2]").click()##sell btn
+            Main.fnd(driver,"//div[@id='iteminfo0_item_market_actions']//span[2]").click()##sell btn
         except:
             try:
-                self.fnd(driver,"//div[@id='iteminfo1_item_market_actions']//span[2]").click()##sell btn
+                Main.fnd(driver,"//div[@id='iteminfo1_item_market_actions']//span[2]").click()##sell btn
             except:
                 pass
         sleep(0.5)
-        inputtext = self.fnd(driver,"//input[@id='market_sell_buyercurrency_input']")##price input
+        inputtext = Main.fnd(driver,"//input[@id='market_sell_buyercurrency_input']")##price input
         inputtext.send_keys(price)
         sleep(0.5)
-        self.fnd(driver,"//a[@id='market_sell_dialog_accept']").click()##btn put for sale 
+        Main.fnd(driver,"//a[@id='market_sell_dialog_accept']").click()##btn put for sale 
         if driver.find_element(By.XPATH,("//div[@id='market_sell_dialog_error']")).text == "You must agree to the terms of the Steam Subscriber Agreement to sell this item.":
-            self.fnd(driver,"//input[@id='market_sell_dialog_accept_ssa']").click()##checkbox
-            self.fnd(driver,"//a[@id='market_sell_dialog_accept']").click()##btn put for sale 
+            Main.fnd(driver,"//input[@id='market_sell_dialog_accept_ssa']").click()##checkbox
+            Main.fnd(driver,"//a[@id='market_sell_dialog_accept']").click()##btn put for sale 
         sleep(0.5)
-        self.fnd(driver,"//a[@id='market_sell_dialog_ok']").click()##btn ok 
+        Main.fnd(driver,"//a[@id='market_sell_dialog_ok']").click()##btn ok 
         if driver.find_element(By.XPATH,("//div[@id='market_sell_dialog_error']")).text == "You already have a listing for this item pending confirmation. Please confirm or cancel the existing listing.":
-            self.fnd(driver,"//div[@id='market_sell_dialog']//div[@class='newmodal_close']").click()##close modal
-            self.Set_number(self.Get_number(driver)+1,driver)
-            self.print_and_console("CARD ALREADY SOLD")
+            Main.fnd(driver,"//div[@id='market_sell_dialog']//div[@class='newmodal_close']").click()##close modal
+            SETTINGS["GRID"]+=1
+            Main.print_and_console("CARD ALREADY SOLD")
         else:
             sleep(0.5)
             if driver.find_element(By.XPATH,("//div[@id='market_sell_dialog_error']")).text == "You have too many listings pending confirmation. Please confirm or cancel some before attempting to list more.":
-                self.Stop()
-                self.Clean()
-                self.mylist.insert(END,"***************************************************MAX CONFIRMATIONS REACHED***********************************************")
-                self.mylist.insert(END,"*********************************************PLEASE CONFIRM THE CARDS AND RESTART******************************************")
+                SETTINGS["STOP"]=True
+                Main.Clean()
+                mylist.insert(END,"***************************************************MAX CONFIRMATIONS REACHED***********************************************")
+                mylist.insert(END,"*********************************************PLEASE CONFIRM THE CARDS AND RESTART******************************************")
             else:
                 sleep(0.5)
                 try:
                     driver.find_element(By.XPATH,"//div[@class='newmodal_buttons']//span").click()##2fa x btn 
                 except:
                     try:
-                        self.fnd(driver,"//div[@class='newmodal_header']//div").click()
+                        Main.fnd(driver,"//div[@class='newmodal_header']//div").click()
                     except:
-                        pass
+                        SETTINGS["GRID"]-=1
                 #saving
-                self.Set_sold(self.Get_sold()[0]+1,self.lblPrice["text"],round((time.time() - Tstart)+float(self.lblTime["text"]),2))
-                self.lblCounter["text"]=(self.Get_sold()[0])
-                self.lblTime["text"] = self.Get_sold()[2]
-                self.lblPrice["text"] = round(float(self.lblPrice["text"])+price,2)
-                self.Set_number(self.Get_number(driver)+1,driver)
+                SETTINGS["COUNTER"]+=1
+                SETTINGS["GRID"]+=1
+                SETTINGS["TIME"]+=round((time.time() - Tstart),2)
+                SETTINGS["PRICE"]=round(float(SETTINGS["PRICE"])+price,2)
+                lblCounter["text"]=SETTINGS["COUNTER"]
+                lblTime["text"] = SETTINGS["TIME"]
+                lblPrice["text"] = SETTINGS["PRICE"]
                 ##DB
-                connection = sqlite3.connect(DB_FILE)
+                connection = sqlite3.connect(SETTINGS["S_DB_FILE"])
                 cursor = connection.cursor()
                 cursor.execute('''SELECT id FROM Cards ORDER BY id DESC LIMIT 1''')
                 select = cursor.fetchall()
@@ -442,65 +267,73 @@ class Main(Frame):
                 cursor.execute('''SELECT * FROM Cards ORDER BY id DESC LIMIT 1''')
                 select = cursor.fetchall()
                 for doc in select:
-                    self.print_console("| nº{} | {} | ARS${} | {}% | {} | {} |".format(doc[0],doc[1],doc[2],doc[3],doc[4],doc[5]))
+                    Main.print_console("| nº{} | {} | ARS${} | {}% | {} | {} |".format(doc[0],doc[1],doc[2],doc[3],doc[4],doc[5]))
                 connection.commit()
                 cursor.close()
                 connection.close()
-                self.mylist.see("end")
+                mylist.see("end")
                 #DB
-                self.print_and_console("SOLD")
+                Main.print_and_console("SOLD")
                 sleep(0.5)
 
-    def info(self):
-        self.Clean()
-        self.mylist.insert(END,"Sel-> Selects from the db the registres by game name, introduced in the user input")
-        self.mylist.insert(END,"Del-> Deletes from the db the registry with the introduced id")
-        self.mylist.insert(END,"C-> Cleans the Console")
-        self.mylist.insert(END,"All-> Selects all registres from the db")
-        self.mylist.insert(END,"LOGIN-> Input acc to sell cards and input 2FA if enabled")
-        self.mylist.insert(END,"START-> Starts selling")
-        self.mylist.insert(END,"Restart-> Resets all values to start over")
-        self.mylist.insert(END,"Stop-> Stops selling when finishes the actual card")
-        self.mylist.insert(END,"Quit-> Quits the program, please press stop before pressing this to avoid issues")
-        self.mylist.insert(END,"ESTIMATED TIME 30m -> 250 cards (comfirmation cap)")
+    def info():
+        Main.Clean()
+        mylist.insert(END,"Sel-> Selects from the db the registres by game name, introduced in the user input")
+        mylist.insert(END,"Del-> Deletes from the db the registry with the introduced id")
+        mylist.insert(END,"C-> Cleans the Console")
+        mylist.insert(END,"All-> Selects all registres from the db")
+        mylist.insert(END,"LOGIN-> Input acc to sell cards and input 2FA if enabled")
+        mylist.insert(END,"START-> Starts selling")
+        mylist.insert(END,"Restart-> Resets all values to start over")
+        mylist.insert(END,"Stop-> Stops selling when finishes the actual card")
+        mylist.insert(END,"Quit-> Quits the program, please press stop before pressing this to avoid issues")
+        mylist.insert(END,"ESTIMATED TIME 30m -> 250 cards (comfirmation cap)")
 
-    def GotoPage(self,driver,inventory_url):
+    def GotoPage(driver,inventory_url):
         driver.get(inventory_url)##load inv
         sleep(1)
-        if self.Get_page() > 0:##scroll
+        if SETTINGS["IPAGE"] > 0:##scroll
             sleep(0.5)
-            for x in range(self.Get_page()):
+            for x in range(SETTINGS["IPAGE"]):
                 driver.find_element(By.XPATH,"//a[@id='pagebtn_next']").click()
                 sleep(1)
 
-    def fnd(self,driver,path):
+    def fnd(driver,path):
         speed = True
+        count = 0
         while speed:
+            if count > 20:
+                speed = False
             try:
                 res = driver.find_element(By.XPATH,path)
                 speed = False
                 print("found1 {}".format(path))
             except:
                 print("nfound1 {}".format(path))
+                count+=1
                 sleep(0.1)
-                pass
         return res
 
-    def fndcn(self,driver,path):
+    def fndcn(driver,path):
         speed = True
+        count = 0
         while speed:
+            if count > 20:
+                speed = False
             try:
                 res = driver.find_element(By.CLASS_NAME,path)
                 speed = False
                 print("found2 {}".format(path))
             except:
                 print("nfound2 {}".format(path))
-                pass
         return res
 
-    def fnds(self,driver,path):
+    def fnds(driver,path):
         speed = True
+        count = 0
         while speed:
+            if count > 20:
+                speed = False
             try:
                 res = driver.find_elements(By.XPATH,path)
                 speed = False
@@ -510,75 +343,43 @@ class Main(Frame):
                 pass
         return res
 
-    def login(self,driver):
-        driver.get(URL)
-        user = self.fnd(driver,"//input[@id='input_username']")
-        password = self.fnd(driver,"//input[@id='input_password']")
-        user.send_keys(self.txtInput1.get())
-        password.send_keys(self.txtInput2.get())
-        self.fndcn(driver,'login_btn').click()
-        sleep(3)
-        self.print_and_console("2FA...")
-        _2fa = self.txtInput3.get()
-        if _2fa!="":
-            try:
-                twofactor = self.fnd(driver,"//input[@id='twofactorcode_entry']")
-                twofactor.send_keys(_2fa)
-            except:
-                self.print_and_console("NO 2FA FOUND")
-                pass
-        else:
-            self.print_and_console("NO USER INPUT")
-            pass
-        self.print_and_console("2FA DONE")
-        self.fnds(driver,"//div[@id='login_twofactorauth_buttonset_entercode']//div")[0].click()
+    
 
     ###-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------###
     
-    def cromos_sell(self):
+    def cromos_sell():
         try:
-            if not os.path.exists(DB_FILE):
-                self.Create_Dir()
+            if not os.path.exists(SETTINGS["S_DB_FILE"]):
                 ##DB
-                connection = sqlite3.connect(DB_FILE)
+                connection = sqlite3.connect(SETTINGS["S_DB_FILE"])
                 cursor = connection.cursor()
                 cursor.execute('''CREATE TABLE IF NOT EXISTS Cards (id INT PRIMARY KEY,Name TEXT, Price FLOAT, Percent INT, Game TEXT, Date TEXT)''')
                 connection.commit()
                 connection.close()
-            self.Clean()
-            self.lblCounter["text"]=(self.Get_sold()[0])
-            self.lblPrice["text"]=(self.Get_sold()[1])
-            self.lblTime["text"]=(self.Get_sold()[2])
-            ##---load window and login
+            Main.Clean()
+            lblCounter["text"]=SETTINGS["COUNTER"]
+            lblPrice["text"]=SETTINGS["PRICE"]
+            lblTime["text"]=SETTINGS["TIME"]
             driver = webdriver.Firefox()
+            driver.implicitly_wait(3)
             driver.get("https://steamcommunity.com/")
-            if os.path.exists(PIKLE_FILE_COOKIES):
-                driver = self.Get_cookies(driver)
-            else:
-                ##---login
-                self.print_and_console("LOGING...")
-                self.login(driver)
-                self.print_and_console("LOGGED")
-                sleep(2)
+            driver = Main.Get_cookies(driver)
             driver.execute_script('''window.open("","_blank");''')
             driver.switch_to.window(driver.window_handles[0])
-            inventory_url = "{}/inventory/#753".format(self.Get_accid(driver))
-            driver.implicitly_wait(3)
+            inventory_url = f"{SETTINGS['ACCID']}/inventory/#753"
             #---start doing sells
-            self.GotoPage(driver,inventory_url)##load inv & scroll
+            driver.get(URL)
             driver.execute_script('''ChangeLanguage( 'english' );''')
             sleep(1)
-            self.GotoPage(driver,inventory_url)##load inv & scroll
-            self.Set_stop(False)
+            Main.GotoPage(driver,inventory_url)##load inv & scroll
+            SETTINGS["STOP"]=False
             card_nameb = None
             name = ["",""]
             res = None
-            if not os.path.exists(PIKLE_FILE_COOKIES):
-                self.Set_cookies(driver)
             for x in range(10000):
-                if self.Get_stop()==False:
+                if SETTINGS["STOP"]==False:
                     Tstart = time.time()
-                    self.Get_inventory_grid(driver,1,inventory_url)
+                    Main.Get_inventory_grid(driver,1,inventory_url)
                     name = ["",""]
                     gname = ["",""]
                     try:##find card name
@@ -608,12 +409,12 @@ class Main(Frame):
                         sleep(1)
                         try:##find card link
                             if res ==0:
-                                name[0] = self.fnd(driver,"//div[@id='iteminfo0_item_market_actions']//a").get_attribute("href")
+                                name[0] = Main.fnd(driver,"//div[@id='iteminfo0_item_market_actions']//a").get_attribute("href")
                         except:
                             pass
                         try:
                             if res == 1:
-                                name[1] = self.fnd(driver,"//div[@id='iteminfo1_item_market_actions']//a").get_attribute("href")
+                                name[1] = Main.fnd(driver,"//div[@id='iteminfo1_item_market_actions']//a").get_attribute("href")
                         except:
                             pass
                         if name[0]=="":
@@ -621,7 +422,7 @@ class Main(Frame):
                         else:
                             card_url=name[0]
                         ##loking for price
-                        self.print_and_console("GETTING CARD PRICE...")
+                        Main.print_and_console("GETTING CARD PRICE...")
                         driver.switch_to.window(driver.window_handles[1])
                         driver.get(card_url)##load card
                         speed = True
@@ -637,106 +438,275 @@ class Main(Frame):
                                 pass
                         price = str(text.split(" ")[1])
                         try:
-                            price = round(float(self.Replace(price))*PRICE_MULTIPLIER,2)
-                            self.print_and_console("PRICE FOUND")
+                            price = round(float(Main.Replace(price))*PRICE_MULTIPLIER,2)
+                            Main.print_and_console("PRICE FOUND")
                             driver.switch_to.window(driver.window_handles[0])
-                            self.finish_sell(driver, price, card_namea, game_name, inventory_url,Tstart)
+                            Main.finish_sell(driver, price, card_namea, game_name, inventory_url,Tstart)
                         except ValueError:
-                            self.Set_number(self.Get_number(driver)+1,driver)
+                            SETTINGS["GRID"]+=1
                     else:
                         card_nameb = card_namea
-                        self.finish_sell(driver, price, card_namea, game_name, inventory_url,Tstart)
+                        Main.finish_sell(driver, price, card_namea, game_name, inventory_url,Tstart)
                 else:
-                    self.print_and_console("***STOPED***")
+                    driver.quit()
+                    Main.print_and_console("***STOPED***")
                     break
         except InvalidSessionIdException:
-            self.print_and_console("BROWSER CONNECTION LOST")
-        # except:
-        #     self.print_and_console("*********UNEXPECTED ERROR*********")
-        #     messagebox.showerror(title="Error", message="Unexpected error")
-        #     sleep(5)
-        #     exit()
+            Main.print_and_console("BROWSER CONNECTION LOST")
+        except Exception as e:
+            logging.error(e)
+            messagebox.showerror(title="Error", message="Unexpected error")
+            exit()
         
-    def create_widgets(self):
+class Menus():
+
+    def StartM():###############################################
+        user32 = ctypes.windll.user32
+        user32.SetProcessDPIAware()
+        win = Tk()
+        win.title(VERSION)
+        win.geometry(f"{LOGIN_WIDTH}x{LOGIN_HEIGHT}+{int(user32.GetSystemMetrics(0)-(user32.GetSystemMetrics(0)/2)-100)}+{int(user32.GetSystemMetrics(1)/2)-200}")
+        win.config(bg=SETTINGS["BG_COLOR"])
+        win.resizable(width=False, height=False)
+
+        def login():
+            win.destroy()
+            Menus.LoginM()
+        
+        def cards():
+            if SETTINGS["COOKIES"]==[]:
+                messagebox.showinfo('', 'You need to login to do this')    
+            else:
+                win.destroy()
+                Menus.CardsM()
+
+        def games():
+            if SETTINGS["COOKIES"]==[]:
+                messagebox.showinfo('', 'You need to login to do this')
+            else:
+                win.destroy()
+                #FIXME create games gui
+
+        def settings():
+            Menus.SettingsM() 
+
+        def logout():
+            SETTINGS["COOKIES"]=[]
+            win.destroy()
+            Menus.StartM()
+
+        cardsb = Button(win, text="Sell Cards", relief="flat", fg=SETTINGS["TXT_COLOR"], cursor="hand2", bg=SETTINGS["BG_COLOR"], font=("Times", "14", "bold"), command=cards)
+        gamesb = Button(win, text="Buy Games", relief="flat", fg=SETTINGS["TXT_COLOR"], cursor="hand2", bg=SETTINGS["BG_COLOR"], font=("Times", "14", "bold"), command=games)
+        settingsb = Button(win, text="Settings", relief="flat", fg=SETTINGS["TXT_COLOR"], cursor="hand2", bg=SETTINGS["BG_COLOR"], font=("Times", "14", "bold"), command=settings)
+
+        cardsb.place(x=POS_COL1_X+60,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        gamesb.place(x=POS_COL1_X+60,y=POS_ROW2_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        settingsb.place(x=POS_COL1_X+60,y=POS_ROW3_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+
+        if SETTINGS["COOKIES"]==[]:
+            btn = Button(win, text="Login", relief="flat", fg=SETTINGS["TXT_COLOR"], cursor="hand2", bg=SETTINGS["BG_COLOR"], font=("Times", "14", "bold"), command=login)
+            btn.place(x=POS_COL1_X+60,y=POS_ROW4_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        else:
+            btnt = Label(win,text='✓ Logged as',bg=SETTINGS["BG_COLOR"], fg=SETTINGS["TXT_COLOR"], font=("Times", "14", "bold"))
+            btnt.place(x=POS_COL1_X,y=POS_ROW4_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+            btnl = Button(win, text=SETTINGS["NAME"], relief="flat", fg=SETTINGS["TXT_COLOR"], cursor="hand2", bg=SETTINGS["BG_COLOR"], font=("Times", "14", "bold"), command=logout)
+            btnl.place(x=POS_COL2_X,y=POS_ROW4_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+            # link = Label(win, text="Hyperlink", fg="black", cursor="hand2", bg=SETTINGS["BG_COLOR"])
+            # link.bind("<Button-1>", lambda e: webbrowser.open_new("http://www.google.com"))
+            # link.place(x=POS_COL2_X,y=POS_ROW4_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+
+        win.mainloop()
+
+    def LoginM():##############################################
+        user32 = ctypes.windll.user32
+        user32.SetProcessDPIAware()
+        win = Tk()
+        win.title('Login')
+        win.geometry(f"{LOGIN_WIDTH}x{LOGIN_HEIGHT}+{int(user32.GetSystemMetrics(0)-(user32.GetSystemMetrics(0)/2)-100)}+{int(user32.GetSystemMetrics(1)/2)-200}")
+        win.config(bg=SETTINGS["BG_COLOR"])
+        win.resizable(width=False, height=False)
+
+        def submit():
+            u = usri.get()
+            p = pswi.get()
+            check_counter=0
+            if p == "":
+                warn = "Password can't be empty"
+            else:
+                check_counter += 1
+            if u == "":
+                warn = "Username can't be empty"
+            else:
+                check_counter += 1
+            if check_counter == 2:
+                driver = webdriver.Firefox()
+                Main.print_and_console("LOGING...")
+                driver.get(URL)
+                user = Main.fnd(driver,"//input[@id='input_username']")
+                password = Main.fnd(driver,"//input[@id='input_password']")
+                user.send_keys(usri.get())
+                password.send_keys(pswi.get())
+                Main.fndcn(driver,'login_btn').click()
+                sleep(3)
+                Main.print_and_console("2FA...")
+                _2fa = f2ai.get()
+                if _2fa!="":
+                    try:
+                        twofactor = Main.fnd(driver,"//input[@id='twofactorcode_entry']")
+                        twofactor.send_keys(_2fa)
+                    except:
+                        Main.print_and_console("NO 2FA FOUND")
+                        pass
+                else:
+                    Main.print_and_console("NO USER INPUT")
+                    pass
+                Main.print_and_console("2FA DONE")
+                Main.fnds(driver,"//div[@id='login_twofactorauth_buttonset_entercode']//div")[0].click()
+                Main.print_and_console("LOGGED")
+                SETTINGS["COOKIES"]=driver.get_cookies()
+                SETTINGS["ACCID"]=Main.fnds(driver,"//div[@id='global_actions']//a")[-1].get_attribute("href")
+                driver.quit()
+                win.destroy()
+                Menus.StartM()
+            else:
+                messagebox.showinfo('', warn)
+
+        # labels
+        usr = Label(win, text='Username ',bg=SETTINGS["BG_COLOR"], fg=SETTINGS["TXT_COLOR"], font=("Times", "14"))
+        psw = Label(win, text='Password ',bg=SETTINGS["BG_COLOR"], fg=SETTINGS["TXT_COLOR"], font=("Times", "14"))
+        f2a = Label(win,text='2fa',bg=SETTINGS["BG_COLOR"], fg=SETTINGS["TXT_COLOR"], font=("Times", "14"))
+
+        usr.place(x=POS_COL1_X,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        psw.place(x=POS_COL1_X,y=POS_ROW2_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        f2a.place(x=POS_COL1_X,y=POS_ROW3_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        
+        # Entry
+        usri = Entry(win, fg=SETTINGS["TXT_COLOR"], font=("Times", "14"), bg=SETTINGS["BG_COLOR"])
+        pswi = Entry(win, fg=SETTINGS["TXT_COLOR"], font=("Times", "14"), bg=SETTINGS["BG_COLOR"], show="*")
+        f2ai = Entry(win, fg=SETTINGS["TXT_COLOR"], font=("Times", "14"), bg=SETTINGS["BG_COLOR"])
+
+        usri.place(x=POS_COL2_X,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        pswi.place(x=POS_COL2_X,y=POS_ROW2_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        f2ai.place(x=POS_COL2_X,y=POS_ROW3_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+
+        # button 
+        btn = Button(win, text="Login", relief="flat", fg=SETTINGS["TXT_COLOR"], bg=SETTINGS["BG_COLOR"], font=("Times", "14", "bold"), command=submit)
+        btn.place(x=POS_COL1_X+60,y=POS_ROW4_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+
+        win.mainloop()
+    
+    def SettingsM():################################################
+        import tkinter
+        from tkinter import ttk
+        user32 = ctypes.windll.user32
+        user32.SetProcessDPIAware()
+        win = tkinter.Tk()
+        win.title("Settings")
+        win.geometry(f"{SETTINGS_WIDTH}x{SETTINGS_HEIGHT}+{int(user32.GetSystemMetrics(0)-(user32.GetSystemMetrics(0)/2)-250)}+{int(user32.GetSystemMetrics(1)/2)-250}")
+        win.config(bg=SETTINGS["BG_COLOR"])
+        win.resizable(width=False, height=False)
+        CheckVar = IntVar(value=1)
+
+        def dark_theme():
+            if SETTINGS["BG_COLOR"] == "SystemButtonFace":
+                SETTINGS["BG_COLOR"] = "#1e1e1e"
+            else:
+                SETTINGS["BG_COLOR"] = "SystemButtonFace"
+
+            if SETTINGS["TXT_COLOR"] == "black":
+                SETTINGS["TXT_COLOR"] = "white"
+            else:
+                SETTINGS["TXT_COLOR"] = "black"
+
+            # try:
+            #     p = psutil.Process(os.getpid())
+            #     for handler in p.get_open_files() + p.connections():
+            #         os.close(handler.fd)
+            # except Exception as e:
+            #     logging.error(e)
+            # python = sys.executable
+            # os.execl(python, python, *sys.argv)
+
+            
+        link = Button(win, text="Dark Theme", fg=SETTINGS["TXT_COLOR"], cursor="hand2", bg=SETTINGS["BG_COLOR"], command=dark_theme)
+        link.place(x=POS_COL1_X,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+
+        win.mainloop()
+
+    def CardsM():#####################################################################
+        user32 = ctypes.windll.user32
+        user32.SetProcessDPIAware()
+        win = Tk()
+        win.wm_title("Sell Cards")
+        win.geometry(f"{CARDS_WIDTH}x{CARDS_HEIGTH}+{int(user32.GetSystemMetrics(0)-(user32.GetSystemMetrics(0)/2.5))}+{int(user32.GetSystemMetrics(1)/7)}")
+        win.resizable(width=False, height=False)
         ###Title
-        self.lblTitle = Label(self,text="CARDS")
-        self.lblTitle.place(x=POS_COL1_X,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        lblTitle = Label(win,text="CARDS")
+        lblTitle.place(x=POS_COL1_X,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
         ###Start
-        self.btnStart = Button(self,text="Start", command=self.sell_redirect)
-        self.btnStart.place(x=POS_COL3_X,y=POS_ROW3_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        btnStart = Button(win,text="Start", command=Main.sell_redirect)
+        btnStart.place(x=POS_COL3_X,y=POS_ROW3_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
         ###Quit
-        self.btnQuit = Button(self,text="Quit", command=self.Quit)
-        self.btnQuit.place(x=POS_COL6_X,y=POS_ROW3_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        btnQuit = Button(win,text="Quit", command=Main.Quit)
+        btnQuit.place(x=POS_COL6_X,y=POS_ROW3_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
         ###Stop
-        self.btnStop = Button(self,text="Stop", command=self.Stop)
-        self.btnStop.place(x=POS_COL6_X,y=POS_ROW2_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        btnStop = Button(win,text="Stop", command=Main.Stop)
+        btnStop.place(x=POS_COL6_X,y=POS_ROW2_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
         ###Restart
-        self.btnRestart = Button(self,text="Restart", command=self.reset_settings)
-        self.btnRestart.place(x=POS_COL6_X,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        btnRestart = Button(win,text="Reset", command=Main.reset_settings)
+        btnRestart.place(x=POS_COL6_X,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
         ###info
-        self.btnRestart = Button(self,text="i", command=self.info)
-        self.btnRestart.place(x=POS_COL4_X,y=POS_ROW1_Y,width=NORMAL_WIDTH/2-20, height=NORMAL_HEIGTH)
+        btnRestart = Button(win,text="i", command=Main.info)
+        btnRestart.place(x=POS_COL4_X,y=POS_ROW1_Y,width=NORMAL_WIDTH/2-20, height=NORMAL_HEIGTH)
         ###Buttons
         ##line
-        self.lblLine1 = Label(self,text="", borderwidth=2, relief="groove")
-        self.lblLine1.place(x=POS_COL1_X-4,y=POS_ROW2_Y-4,width=NORMAL_WIDTH*2+30, height=NORMAL_HEIGTH+10)
+        lblLine1 = Label(win,text="", borderwidth=2, relief="groove")
+        lblLine1.place(x=POS_COL1_X-4,y=POS_ROW2_Y-4,width=NORMAL_WIDTH*2+30, height=NORMAL_HEIGTH+10)
         ##CLS
-        self.btnCls = Button(self,text="C", command=self.Clean)
-        self.btnCls.place(x=POS_COL1_X,y=POS_ROW3_Y,width=(NORMAL_WIDTH-20)/2, height=NORMAL_HEIGTH)
+        btnCls = Button(win,text="C", command=Main.Clean)
+        btnCls.place(x=POS_COL1_X,y=POS_ROW3_Y,width=(NORMAL_WIDTH-20)/2, height=NORMAL_HEIGTH)
         ##ALL
-        self.btnAll = Button(self,text="All", command=self.All)
-        self.btnAll.place(x=POS_COL1_X+60,y=POS_ROW3_Y,width=(NORMAL_WIDTH-20)/2, height=NORMAL_HEIGTH)
+        btnAll = Button(win,text="All", command=Main.All)
+        btnAll.place(x=POS_COL1_X+60,y=POS_ROW3_Y,width=(NORMAL_WIDTH-20)/2, height=NORMAL_HEIGTH)
         ##sel
-        self.btnsel = Button(self,text="Sel", command=self.Sel)
-        self.btnsel.place(x=POS_COL1_X,y=POS_ROW2_Y,width=(NORMAL_WIDTH-20)/2, height=NORMAL_HEIGTH)
+        btnsel = Button(win,text="Sel", command=Main.Sel)
+        btnsel.place(x=POS_COL1_X,y=POS_ROW2_Y,width=(NORMAL_WIDTH-20)/2, height=NORMAL_HEIGTH)
         ##del
-        self.btndel = Button(self,text="Del", command=self.Del)
-        self.btndel.place(x=POS_COL1_X+60,y=POS_ROW2_Y,width=(NORMAL_WIDTH-20)/2, height=NORMAL_HEIGTH)
-        ###LOGIN
-        ##text
-        self.Label1 = Label(self, text="LOGIN")
-        self.Label1.place(x=POS_COL2_X,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
-        ##inputs
-        self.txtInput1=Entry(self)
-        self.txtInput1.place(x=POS_COL2_X,y=POS_ROW2_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
-        self.txtInput2=Entry(self)
-        self.txtInput2.place(x=POS_COL2_X,y=POS_ROW3_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
-        ###2FA
-        ##checkbox
-        self.checkbox3 = Label(self, text="2FA")
-        self.checkbox3.place(x=POS_COL3_X,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
-        ##input
-        self.txtInput3=Entry(self)
-        self.txtInput3.place(x=POS_COL3_X,y=POS_ROW2_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        btndel = Button(win,text="Del", command=Main.Del)
+        btndel.place(x=POS_COL1_X+60,y=POS_ROW2_Y,width=(NORMAL_WIDTH-20)/2, height=NORMAL_HEIGTH)
+        ##db input
+        global txtInput1
+        txtInput1=Entry(win)
+        txtInput1.place(x=POS_COL2_X,y=POS_ROW2_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
         ###Console
         ##scroll
-        self.scrollbar = Scrollbar(root)
-        self.mylist = Listbox(root, yscrollcommand = self.scrollbar.set )
-        self.mylist.place(x=POS_COL1_X,y=POS_ROW4_Y,width=NORMAL_WIDTH*7, height=NORMAL_HEIGTH*6)
-        self.info()
-        self.scrollbar.config( command = self.mylist.yview )
-        self.scrollbar.place(x=POS_COL7_X-POX_X_SPACING,y=POS_ROW4_Y,width=POX_X_SPACING, height=NORMAL_HEIGTH*6)
+        scrollbar = Scrollbar(win)
+        global mylist 
+        mylist = Listbox(win, yscrollcommand = scrollbar.set )
+        mylist.place(x=POS_COL1_X,y=POS_ROW4_Y,width=NORMAL_WIDTH*7, height=NORMAL_HEIGTH*6)
+        Main.info()
+        scrollbar.config( command = mylist.yview )
+        scrollbar.place(x=POS_COL7_X-POX_X_SPACING,y=POS_ROW4_Y,width=POX_X_SPACING, height=NORMAL_HEIGTH*6)
         ####Counter 
         ###sold
-        self.Label1 = Label(self, text="CARDS DONE")
-        self.Label1.place(x=POS_COL4_X,y=POS_ROW3_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
-        self.lblCounter = Label(self,text="0", borderwidth=2, relief="groove")
-        self.lblCounter.place(x=POS_COL5_X,y=POS_ROW3_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        Label1 = Label(win, text="CARDS DONE")
+        Label1.place(x=POS_COL4_X,y=POS_ROW3_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        global lblCounter
+        lblCounter = Label(win,text="0", borderwidth=2, relief="groove")
+        lblCounter.place(x=POS_COL5_X,y=POS_ROW3_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
         ###price
-        self.Label2 = Label(self, text="CUR. TOTAL PRICE")
-        self.Label2.place(x=POS_COL4_X,y=POS_ROW2_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
-        self.lblPrice = Label(self,text="0", borderwidth=2, relief="groove")
-        self.lblPrice.place(x=POS_COL5_X,y=POS_ROW2_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        Label2 = Label(win, text="CUR. TOTAL PRICE")
+        Label2.place(x=POS_COL4_X,y=POS_ROW2_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        global lblPrice
+        lblPrice = Label(win,text="0", borderwidth=2, relief="groove")
+        lblPrice.place(x=POS_COL5_X,y=POS_ROW2_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
         ##time
-        self.Label3 = Label(self, text="TIME")
-        self.Label3.place(x=POS_COL4_X+50,y=POS_ROW1_Y,width=NORMAL_WIDTH/2, height=NORMAL_HEIGTH)
-        self.lblTime = Label(self,text="0", borderwidth=2, relief="groove")
-        self.lblTime.place(x=POS_COL5_X,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
+        Label3 = Label(win, text="TIME")
+        Label3.place(x=POS_COL4_X+50,y=POS_ROW1_Y,width=NORMAL_WIDTH/2, height=NORMAL_HEIGTH)
+        global lblTime 
+        lblTime = Label(win,text="0", borderwidth=2, relief="groove")
+        lblTime.place(x=POS_COL5_X,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
 
+        win.mainloop()
 
-root = Tk()
-root.wm_title("V1.1.3")
-root.resizable(width=False, height=False)
-# root.configure(background='#1e1e1e')
-app = Main(root)
-app.mainloop()
+Menus.StartM()
