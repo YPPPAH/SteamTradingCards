@@ -1,0 +1,52 @@
+﻿27/12/2021 17:31:00   Badge -> LoadBadgesAsync, for profile = https://steamcommunity.com/profiles/76561199132470596
+System.Exception: Response is null or empty. Added (+1) to RetryCount
+   at IdleMasterExtended.frmMain.CheckIfResponseIsNullWithRetryCount(String response)
+   at IdleMasterExtended.frmMain.<GetBadgePageAsync>d__25.MoveNext()
+--- End of stack trace from previous location where exception was thrown ---
+   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)
+   at IdleMasterExtended.frmMain.<LoadBadgesAsync>d__24.MoveNext()
+27/12/2021 17:31:03   
+System.NullReferenceException: Object reference not set to an instance of an object.
+   at IdleMasterExtended.frmBrowser.tmrCheck_Tick(Object sender, EventArgs e)
+   at System.Windows.Forms.Timer.OnTick(EventArgs e)
+   at System.Windows.Forms.Timer.TimerNativeWindow.WndProc(Message& m)
+   at System.Windows.Forms.NativeWindow.Callback(IntPtr hWnd, Int32 msg, IntPtr wparam, IntPtr lparam)
+27/12/2021 17:31:28   
+System.NullReferenceException: Object reference not set to an instance of an object.
+   at IdleMasterExtended.frmBrowser.tmrCheck_Tick(Object sender, EventArgs e)
+   at System.Windows.Forms.Timer.OnTick(EventArgs e)
+   at System.Windows.Forms.Timer.TimerNativeWindow.WndProc(Message& m)
+   at System.Windows.Forms.NativeWindow.Callback(IntPtr hWnd, Int32 msg, IntPtr wparam, IntPtr lparam)
+27/12/2021 17:37:32   
+System.NullReferenceException: Object reference not set to an instance of an object.
+   at IdleMasterExtended.frmBrowser.tmrCheck_Tick(Object sender, EventArgs e)
+   at System.Windows.Forms.Timer.OnTick(EventArgs e)
+   at System.Windows.Forms.Timer.TimerNativeWindow.WndProc(Message& m)
+   at System.Windows.Forms.NativeWindow.Callback(IntPtr hWnd, Int32 msg, IntPtr wparam, IntPtr lparam)
+27/12/2021 17:51:09   
+System.NullReferenceException: Object reference not set to an instance of an object.
+   at IdleMasterExtended.frmBrowser.tmrCheck_Tick(Object sender, EventArgs e)
+   at System.Windows.Forms.Timer.OnTick(EventArgs e)
+   at System.Windows.Forms.Timer.TimerNativeWindow.WndProc(Message& m)
+   at System.Windows.Forms.NativeWindow.Callback(IntPtr hWnd, Int32 msg, IntPtr wparam, IntPtr lparam)
+28/12/2021 17:21:55   Badge -> LoadBadgesAsync, for profile = https://steamcommunity.com/profiles/76561199132470596
+System.Exception: Response is null or empty. Added (+1) to RetryCount
+   at IdleMasterExtended.frmMain.CheckIfResponseIsNullWithRetryCount(String response)
+   at IdleMasterExtended.frmMain.<GetBadgePageAsync>d__25.MoveNext()
+--- End of stack trace from previous location where exception was thrown ---
+   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)
+   at IdleMasterExtended.frmMain.<LoadBadgesAsync>d__24.MoveNext()
+28/12/2021 17:22:03   
+System.NullReferenceException: Object reference not set to an instance of an object.
+   at IdleMasterExtended.frmBrowser.tmrCheck_Tick(Object sender, EventArgs e)
+   at System.Windows.Forms.Timer.OnTick(EventArgs e)
+   at System.Windows.Forms.Timer.TimerNativeWindow.WndProc(Message& m)
+   at System.Windows.Forms.NativeWindow.Callback(IntPtr hWnd, Int32 msg, IntPtr wparam, IntPtr lparam)
+28/12/2021 17:22:20   
+System.NullReferenceException: Object reference not set to an instance of an object.
+   at IdleMasterExtended.frmBrowser.tmrCheck_Tick(Object sender, EventArgs e)
+   at System.Windows.Forms.Timer.OnTick(EventArgs e)
+   at System.Windows.Forms.Timer.TimerNativeWindow.WndProc(Message& m)
+   at System.Windows.Forms.NativeWindow.Callback(IntPtr hWnd, Int32 msg, IntPtr wparam, IntPtr lparam)
