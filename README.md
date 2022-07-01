@@ -3,7 +3,6 @@
 ## V1.21
 1. Login Rework
 1. Speed Up login speed
-1. 
 --
 ## V1.20
 1. Bug fixes
