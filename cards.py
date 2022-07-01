@@ -24,10 +24,10 @@ import time
 # import sys
 import os
 
-##SIZE
-NORMAL_WIDTH=100#x
-NORMAL_HEIGTH=30#y
-##AXIS X
+## SIZE
+NORMAL_WIDTH=100# x
+NORMAL_HEIGTH=30# y
+## AXIS X
 POX_X_SPACING=20
 POS_COL1_X=POX_X_SPACING
 POS_COL2_X=(POX_X_SPACING*2)+NORMAL_WIDTH
@@ -36,7 +36,7 @@ POS_COL4_X=(POX_X_SPACING*4)+(NORMAL_WIDTH*3)
 POS_COL5_X=(POX_X_SPACING*5)+(NORMAL_WIDTH*4)
 POS_COL6_X=(POX_X_SPACING*6)+(NORMAL_WIDTH*5)
 POS_COL7_X=(POX_X_SPACING*7)+(NORMAL_WIDTH*6)
-##AXIS Y
+## AXIS Y
 POX_Y_SPACING=20
 POS_ROW1_Y=POX_Y_SPACING
 POS_ROW2_Y=(POX_Y_SPACING*2)+NORMAL_HEIGTH
@@ -45,23 +45,23 @@ POS_ROW4_Y=(POX_Y_SPACING*4)+(NORMAL_HEIGTH*3)
 POS_ROW5_Y=(POX_Y_SPACING*5)+(NORMAL_HEIGTH*4)
 POS_ROW6_Y=(POX_Y_SPACING*6)+(NORMAL_HEIGTH*5)
 POS_ROW7_Y=(POX_Y_SPACING*7)+(NORMAL_HEIGTH*6)
-##WINDOWS
-CARDS_WIDTH=(POX_X_SPACING*4)+(NORMAL_WIDTH*3)#cardsM
+## WINDOWS
+CARDS_WIDTH=(POX_X_SPACING*4)+(NORMAL_WIDTH*3)# cardsM
 CARDS_HEIGTH=(POX_Y_SPACING*4)+(NORMAL_HEIGTH*3)
-LOGIN_WIDTH=(POX_X_SPACING*3)+(NORMAL_WIDTH*2)#loginM
+LOGIN_WIDTH=(POX_X_SPACING*3)+(NORMAL_WIDTH*2)# loginM
 LOGIN_HEIGHT=(POX_Y_SPACING*5)+(NORMAL_HEIGTH*4)
-START_WIDTH=(POX_X_SPACING*3)+(NORMAL_WIDTH*2)#startM
+START_WIDTH=(POX_X_SPACING*3)+(NORMAL_WIDTH*2)# startM
 START_HEIGHT=(POX_Y_SPACING*7)+(NORMAL_HEIGTH*6)
-SETTINGS_HEIGHT=(POX_Y_SPACING*8)+(NORMAL_HEIGTH*7)#settingsM
+SETTINGS_HEIGHT=(POX_Y_SPACING*8)+(NORMAL_HEIGTH*7)# settingsM
 SETTINGS_WIDTH=int(POX_X_SPACING*3.5)+(NORMAL_WIDTH*3)
-GPOP_WIDTH=int(POX_X_SPACING*3.5)+(NORMAL_WIDTH*3)#gamespop
+GPOP_WIDTH=int(POX_X_SPACING*3.5)+(NORMAL_WIDTH*3)# gamespop
 GPOP_HEIGHT=(POX_Y_SPACING*7)+(NORMAL_HEIGTH*6)
-GAMES_WIDTH=(POX_X_SPACING*3)+(NORMAL_WIDTH*2)#gamesM
+GAMES_WIDTH=(POX_X_SPACING*3)+(NORMAL_WIDTH*2)# gamesM
 GAMES_HEIGTH=(POX_Y_SPACING*4)+(NORMAL_HEIGTH*3)
-##VERSION
-VERSION="1.20"
-##SETTINGS
-SETTINGS_VER=4
+## VERSION
+VERSION="1.21"
+## SETTINGS
+SETTINGS_VER=10
 class Settings():
     def save():
         with open(SETTINGS_FILE,"wb") as piklefile:
@@ -98,13 +98,14 @@ class Settings():
         "ACCID": None,
         "COUNTER": 0,
         "TIME": 0,
-        "GRID": 0,
+        "GRID": None,
         "IPAGE": 0,
         "PRICE": 0,
         "STOP": False,
-        "COOKIES_SELL": [],
-        "COOKIES_BUY": [],
+        "sessionid": [],
+        "steamLoginSecure": [],
         "COOKIES_CD": None,
+        "LOGED_STATE": DISABLED,
         "DB_FILE": f"{Path.home()}\\Documents\\YPPAHSOFT\\cards.db",
         "APP_DIRECTORY": APP_DIRECTORY,
         "BG_COLOR": "SystemButtonFace",
@@ -117,6 +118,7 @@ class Settings():
         "GAMES_POS": (int(user32.GetSystemMetrics(0)-(user32.GetSystemMetrics(0)/2.5)), int(user32.GetSystemMetrics(1)/7)),
         "AUTO_POS": None,
         "TITLE": "CARD FARMER",
+        "ICO": "cards.ico",
         "GPOP_FILTER": {
             "MAX_PRICE": None,
             "QUANTITY_ARS": None,
@@ -147,8 +149,8 @@ class Settings():
 APP_DIRECTORY=f"{Path.home()}\\Documents\\YPPAHSOFT\\"
 SETTINGS_FILE = f"{Path.home()}\\Documents\\YPPAHSOFT\\settings.pkl"
 SETTINGS = Settings.LoadSettings()
-Settings.save()      
-Settings.CheckForUpdates()
+Settings.save()    
+# Settings.CheckForUpdates()
 
 class Functions():
     def fnd(driver,path):
@@ -204,6 +206,7 @@ class Menus():
     def StartM():
         win = Tk()
         win.title(SETTINGS['TITLE'])
+        win.iconbitmap(SETTINGS['ICO'])
         win.config(bg=SETTINGS["BG_COLOR"])
         win.resizable(width=False, height=False)
         win.geometry(f"{START_WIDTH}x{START_HEIGHT}+{SETTINGS['START_POS'][0]}+{SETTINGS['START_POS'][1]}")
@@ -214,7 +217,7 @@ class Menus():
             Menus.LoginM()
         
         def cards():
-            if SETTINGS["COOKIES_SELL"]==[]:
+            if SETTINGS["sessionid"]==[]:
                 messagebox.showinfo('', 'You need to login to do this')    
             else:
                 Settings.GetWindowRectFromName('START_POS')
@@ -222,7 +225,7 @@ class Menus():
                 Menus.CardsM()
 
         def games():
-            if SETTINGS["COOKIES_BUY"]==[]:
+            if SETTINGS["sessionid"]==[]:
                 messagebox.showinfo('', 'You need to login to do this')
             else:
                 if SETTINGS["GPOP_FILTER"]["MAX_PRICE"] != None:
@@ -245,10 +248,11 @@ class Menus():
             Menus.SettingsM() 
             
         def logout():
-            SETTINGS["COOKIES_SELL"]=[]
-            SETTINGS["COOKIES_BUY"]=[]
+            SETTINGS["sessionid"]=[]
+            SETTINGS["steamLoginSecure"]=[]
             SETTINGS["VERSION_CD"]=None
             SETTINGS["COOKIES_CD"]=None
+            SETTINGS["LOGED_STATE"]=DISABLED
             Settings.save()
             Settings.GetWindowRectFromName('START_POS')
             win.destroy()
@@ -257,8 +261,8 @@ class Menus():
         def idle():
             result = messagebox.askquestion("","Do you want to idle Games?")
             if result == 'yes':
-                if SETTINGS["STEAM_DIR"] == None:
-                    if not process_exists("Steam.exe"):
+                if not process_exists("Steam.exe"):
+                    if SETTINGS["STEAM_DIR"] == None:
                         filename = 'C:\Program Files\Steam\steam.exe'
                         while not os.path.exists(filename):
                             messagebox.showinfo('', 'Select your steam exe')
@@ -276,7 +280,7 @@ class Menus():
                         sleep(10)
                         windowHandle = ctypes.windll.user32.FindWindowW(None, "Steam")
                         ctypes.windll.user32.ShowWindow(windowHandle, 6)
-                    subprocess.Popen([f"{os.path.abspath(os.path.dirname(__file__))}/idle_master_extended_v1.7/IdleMasterExtended.exe"])
+                subprocess.Popen([f"{os.path.abspath(os.path.dirname(__file__))}/idle_master_extended_v1.7/IdleMasterExtended.exe"])
 
         def process_exists(process_name):
             call = 'TASKLIST', '/FI', 'imagename eq %s' % process_name
@@ -297,10 +301,10 @@ class Menus():
         def auto():
             pass
 
-        cardsb = Button(win, text="Sell Cards", relief="flat", fg=SETTINGS["TXT_COLOR"], cursor="hand2", bg=SETTINGS["BG_COLOR"], font=("Times", "14", "bold"), command=cards)
-        gamesb = Button(win, text="Buy Games", relief="flat", fg=SETTINGS["TXT_COLOR"], cursor="hand2", bg=SETTINGS["BG_COLOR"], font=("Times", "14", "bold"), command=games)
+        cardsb = Button(win, text="Sell Cards", state=SETTINGS["LOGED_STATE"], relief="flat", fg=SETTINGS["TXT_COLOR"], cursor="hand2", bg=SETTINGS["BG_COLOR"], font=("Times", "14", "bold"), command=cards)
+        gamesb = Button(win, text="Buy Games", state=SETTINGS["LOGED_STATE"], relief="flat", fg=SETTINGS["TXT_COLOR"], cursor="hand2", bg=SETTINGS["BG_COLOR"], font=("Times", "14", "bold"), command=games)
         idleb = Button(win, text="Idle Games", relief="flat", fg=SETTINGS["TXT_COLOR"], cursor="hand2", bg=SETTINGS["BG_COLOR"], font=("Times", "14", "bold"), command=idle_redirect)
-        autob = Button(win, text="Auto", relief="flat", fg=SETTINGS["TXT_COLOR"], cursor="hand2", bg=SETTINGS["BG_COLOR"], font=("Times", "14", "bold"), command=auto)
+        autob = Button(win, text="Auto", state=DISABLED, relief="flat", fg=SETTINGS["TXT_COLOR"], cursor="hand2", bg=SETTINGS["BG_COLOR"], font=("Times", "14", "bold"), command=auto)
         settingsb = Button(win, text="Settings", relief="flat", fg=SETTINGS["TXT_COLOR"], cursor="hand2", bg=SETTINGS["BG_COLOR"], font=("Times", "14", "bold"), command=settings)
 
         cardsb.place(x=POS_COL1_X+60,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
@@ -309,12 +313,7 @@ class Menus():
         autob.place(x=POS_COL1_X+60,y=POS_ROW4_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
         settingsb.place(x=POS_COL1_X+60,y=POS_ROW5_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
 
-        if SETTINGS["COOKIES_CD"] != None:
-            if round((time.time()-SETTINGS["COOKIES_CD"])/60/60,2) > 30:
-                messagebox.showwarning("","Cookies are too old please log in again")
-                logout()
-
-        if SETTINGS["COOKIES_SELL"]==[]:
+        if SETTINGS["sessionid"]==[]:
             btn = Button(win, text="Login", relief="flat", fg=SETTINGS["TXT_COLOR"], cursor="hand2", bg=SETTINGS["BG_COLOR"], font=("Times", "14", "bold"), command=login)
             btn.place(x=POS_COL1_X+60,y=POS_ROW6_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
         else:
@@ -330,6 +329,7 @@ class Menus():
         user32.SetProcessDPIAware()
         win = Tk()
         win.title(SETTINGS['TITLE'])
+        win.iconbitmap(SETTINGS['ICO'])
         win.geometry(f"{LOGIN_WIDTH}x{LOGIN_HEIGHT}+{int(user32.GetSystemMetrics(0)-(user32.GetSystemMetrics(0)/2)-100)}+{int(user32.GetSystemMetrics(1)/2)-200}")
         win.config(bg=SETTINGS["BG_COLOR"])
         win.resizable(width=False, height=False)
@@ -349,7 +349,7 @@ class Menus():
             if check_counter == 2:
                 driver = webdriver.Firefox()
                 driver.get("https://store.steampowered.com/login/")
-                user = WebDriverWait(driver, 60).until(ec.visibility_of_element_located((By.XPATH,"//input[@id='input_username']]")))
+                user = WebDriverWait(driver, 60).until(ec.visibility_of_element_located((By.XPATH,"//input[@id='input_username']")))
                 user.send_keys(usri.get())
                 password = WebDriverWait(driver, 60).until(ec.visibility_of_element_located((By.XPATH,"//input[@id='input_password']")))
                 password.send_keys(pswi.get())
@@ -368,23 +368,35 @@ class Menus():
                 print("2FA DONE")
                 try:
                     WebDriverWait(driver, 60).until(ec.visibility_of_element_located((By.XPATH,"//div[@id='login_twofactorauth_buttonset_entercode']//div")))
+                    sleep(1)
                     driver.find_elements(By.XPATH,"//div[@id='login_twofactorauth_buttonset_entercode']//div")[0].click()
                 except:
-                    sleep(0.5)
-                    Functions.fnd(driver,"//div[@id='error_display]'").text = "The account name or password that you have entered is incorrect."
+                    element = WebDriverWait(driver, 60).until(ec.visibility_of_element_located((By.XPATH,"//div[@id='error_display]'")))
+                    sleep(1)
+                    if element.text == "The account name or password that you have entered is incorrect.":
+                        driver.quit()
+                        messagebox.showinfo('', "Incorrect input, please try again")
+                WebDriverWait(driver, 60).until(ec.presence_of_element_located((By.XPATH,"//div[@id='global_actions']//a")))
+                sleep(1)
+                WebDriverWait(driver, 60).until(ec.visibility_of_element_located((By.XPATH,"//div[@id='global_actions']//a")))
+                try:
+                    while driver.find_elements(By.XPATH,"//div[@id='global_actions']//a")[-1].get_attribute("href") == "http://translation.steampowered.com/":
+                        sleep(0.5)
+                except:
                     driver.quit()
-                    messagebox.showinfo('', "Incorrect input")
-                sleep(8)
-                accid = Functions.fnds(driver,"//div[@id='global_actions']//a")[-1].get_attribute("href")
+                    messagebox.showinfo('', "Incorrect input, please try again")
+                accid = driver.find_elements(By.XPATH,"//div[@id='global_actions']//a")[-1].get_attribute("href")
                 if accid == "http://translation.steampowered.com/":
                     messagebox.showwarning("","Error logging, please try again")
                 else:
-                    SETTINGS["COOKIES_BUY"]= driver.get_cookies()
+                    SETTINGS["steamLoginSecure"] = driver.get_cookie('steamLoginSecure')
+                    SETTINGS["sessionid"] = driver.get_cookie('sessionid')
                     SETTINGS["ACCID"] = accid
                     driver.get(f"{SETTINGS['ACCID']}/inventory/#753")
-                    SETTINGS["COOKIES_SELL"] = driver.get_cookies()
                     SETTINGS["COOKIES_CD"] = time.time()
+                    SETTINGS["LOGED_STATE"]=NORMAL
                     Settings.save()
+                    print("Login Successful")
                 driver.quit()
                 win.destroy()
                 Menus.StartM()
@@ -425,6 +437,7 @@ class Menus():
     def SettingsM():
         win = Tk()
         win.title(SETTINGS['TITLE'])
+        win.iconbitmap(SETTINGS['ICO'])
         win.config(bg=SETTINGS["BG_COLOR"])
         win.resizable(width=False, height=False)
         win.geometry(f"{SETTINGS_WIDTH}x{SETTINGS_HEIGHT}+{SETTINGS['SETTINGS_POS'][0]}+{SETTINGS['SETTINGS_POS'][1]}")
@@ -485,7 +498,7 @@ class Menus():
             chars = "!#$%&()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_abcdefghijklmnopqrstuvwxyz{|}~"
             pas = ""
             randchars = ""
-            for x in range(1000):
+            for x in range(100000):
                 randchars += random.choice(chars)
             for x in range(int(lengthval.get())):
                 pas += random.choice(randchars)
@@ -592,6 +605,7 @@ class Menus():
     def GamesM():
         win = Tk()
         win.title(SETTINGS['TITLE'])
+        win.iconbitmap(SETTINGS['ICO'])
         win.config(bg=SETTINGS["BG_COLOR"])
         win.resizable(width=False, height=False)
         win.geometry(f"{GAMES_WIDTH}x{GAMES_HEIGTH}+{SETTINGS['GAMES_POS'][0]}+{SETTINGS['GAMES_POS'][1]}")
@@ -602,8 +616,8 @@ class Menus():
             Menus.StartM()
         
         def Get_cookies(driver):
-            for cookie in SETTINGS["COOKIES_BUY"]:
-                driver.add_cookie(cookie)
+            driver.add_cookie(SETTINGS["sessionid"])
+            driver.add_cookie(SETTINGS["steamLoginSecure"])
             return driver
 
         def games_redirect():
@@ -620,21 +634,23 @@ class Menus():
             driver = webdriver.Firefox()
             driver.implicitly_wait(3)
             driver.get("https://store.steampowered.com/")
+            WebDriverWait(driver, 60).until(ec.visibility_of_element_located((By.CSS_SELECTOR,"a.global_action_link")))
             sleep(0.5)
+            driver.delete_all_cookies()
             driver = Get_cookies(driver)
             driver.execute_script('''ChangeLanguage( 'english' );''')
+            print("a")
             sleep(1)
             driver.get("https://store.steampowered.com/")
             sleep(2)
             SETTINGS["STOP"]=False
-            # try:
             if SETTINGS["WALLET"]["LAST_CHECK"] == None or (time.time()-SETTINGS["WALLET"]["LAST_CHECK"]) > 60:
                 wallet = driver.find_element(By.XPATH,"//a[@id='header_wallet_balance']").text
                 sleep(0.5)
                 wallet = float(str(wallet).split(" ")[1].replace(".","").replace(",","."))
                 SETTINGS["WALLET"]["AMOUNT"] = wallet
                 SETTINGS["WALLET"]["LAST_CHECK"] = time.time()
-            driver.get("https://store.steampowered.com/search/?sort_by=Price_ASC&maxprice=70&category1=998&category2=29&specials=1")
+            driver.get("https://store.steampowered.com/search/?sort_by=Price_ASC&maxprice=70&category1=998&category2=29")
             sleep(20)
             gamenum = 0
             games = {}
@@ -711,6 +727,7 @@ class Menus():
                                         games[gamenum] = game ## save game
                                         # filters["wallet"] -= game["price"]##update wallet
                                         gamenum+=1##next game
+                                        lblCounter["text"] = gamenum
                                         if "ars_qtty" in filters:  
                                             filters["ars_qtty"] -= game["price"]## update filter
                                         game = {}
@@ -722,7 +739,7 @@ class Menus():
                                 warn = "Price too high"
                                 break
 
-            res = messagebox.askquestion("",f'Do u want to buy {gamenum} Games for {round(totalp,2)} Ars,\n·REASON: {warn}')
+            res = messagebox.askquestion("",f'Do u want to buy {gamenum} Games for {round(totalp,2)} Ars,\nREASON: {warn}')
             if res == "yes":
                 driver.get("https://store.steampowered.com/cart/")
                 sleep(0.5)
@@ -740,6 +757,7 @@ class Menus():
                         pass
                 sleep(1)
                 finishbuytime = time.time()
+                Label1["text"] = "GAMES BOUGHT"
                 lblCounter["text"] = gamenum
                 lblTime["text"] = str(int(finishbuytime-startbuytime))+"s"
                 driver.find_element(By.XPATH,'//*[@id="btn_purchase_self"]').click()
@@ -749,8 +767,6 @@ class Menus():
                 print("done")
             else:
                 driver.close()
-            
-            
             # except Exception as e:
             #     logging.error(e)
         
@@ -766,7 +782,7 @@ class Menus():
         lblTime = Label(win,text="0", borderwidth=2, relief="groove",bg=SETTINGS["BG_COLOR"], fg=SETTINGS["TXT_COLOR"])
         lblTime.place(x=POS_COL2_X,y=POS_ROW1_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
         ###sold
-        Label1 = Label(win, text="GAMES BOUGHT",bg=SETTINGS["BG_COLOR"], fg=SETTINGS["TXT_COLOR"])
+        Label1 = Label(win, text="GAMES SELECTED",bg=SETTINGS["BG_COLOR"], fg=SETTINGS["TXT_COLOR"])
         Label1.place(x=POS_COL1_X,y=POS_ROW2_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
         lblCounter = Label(win,text="0", borderwidth=2, relief="groove",bg=SETTINGS["BG_COLOR"], fg=SETTINGS["TXT_COLOR"])
         lblCounter.place(x=POS_COL2_X,y=POS_ROW2_Y,width=NORMAL_WIDTH, height=NORMAL_HEIGTH)
@@ -783,6 +799,7 @@ class Menus():
         user32.SetProcessDPIAware()
         win = Tk()
         win.title(SETTINGS['TITLE'])
+        win.iconbitmap(SETTINGS['ICO'])
         win.geometry(f"{GPOP_WIDTH}x{GPOP_HEIGHT}+{int((user32.GetSystemMetrics(0)/2)+50)}+{int(user32.GetSystemMetrics(1)/2)-200}")
         win.config(bg=SETTINGS["BG_COLOR"])
         win.resizable(width=False, height=False)
@@ -854,6 +871,7 @@ class Menus():
     def StatsM():
         win = Tk()
         win.title(SETTINGS['TITLE'])
+        win.iconbitmap(SETTINGS['ICO'])
         win.config(bg=SETTINGS["BG_COLOR"])
         win.resizable(width=False, height=False)
         win.geometry(f"{CARDS_WIDTH}x{CARDS_HEIGTH}+{SETTINGS['CARDS_POS'][0]}+{SETTINGS['CARDS_POS'][1]}")
@@ -924,8 +942,8 @@ class Menus():
                     mylist.insert(END, "| nº{} | {} | ARS${} | {}% | {} | {} |".format(doc[0],doc[1],doc[2],doc[3],doc[4],doc[5]))
             connection.commit()
             connection.close()
-                ###info
 
+        ###info
         btnRestart = Button(win,text="i", command=info,bg=SETTINGS["BG_COLOR"], fg=SETTINGS["TXT_COLOR"])
         btnRestart.place(x=POS_COL1_X,y=POS_ROW1_Y,width=(NORMAL_WIDTH-20)/2, height=NORMAL_HEIGTH)
         ###Buttons
@@ -959,6 +977,7 @@ class Menus():
     def CardsM():
         win = Tk()
         win.title(SETTINGS['TITLE'])
+        win.iconbitmap(SETTINGS['ICO'])
         win.config(bg=SETTINGS["BG_COLOR"])
         win.resizable(width=False, height=False)
         win.geometry(f"{CARDS_WIDTH}x{CARDS_HEIGTH}+{SETTINGS['CARDS_POS'][0]}+{SETTINGS['CARDS_POS'][1]}")
@@ -985,9 +1004,8 @@ class Menus():
             return string.replace(",",".")
 
         def Get_cookies(driver):
-            driver.delete_all_cookies()
-            for cookie in SETTINGS["COOKIES_SELL"]:
-                driver.add_cookie(cookie)
+            driver.add_cookie(SETTINGS["sessionid"])
+            driver.add_cookie(SETTINGS["steamLoginSecure"])
             return driver
 
         def reset_settings():
@@ -1018,15 +1036,17 @@ class Menus():
                 lblCounter["text"]=SETTINGS["COUNTER"]
                 lblPrice["text"]=SETTINGS["PRICE"]
                 lblTime["text"]=SETTINGS["TIME"]
+                print("x")
                 driver = webdriver.Firefox()
+                print("x")
                 driver.implicitly_wait(3)
                 driver.get("https://steamcommunity.com/")
-                sleep(0.5)
+                WebDriverWait(driver, 60).until(ec.visibility_of_element_located((By.CSS_SELECTOR,".responsive_page_content")))
+                sleep(1)
                 driver = Get_cookies(driver)
                 driver.execute_script('''window.open("","_blank");''')
                 driver.switch_to.window(driver.window_handles[0])
-                sleep(0.5)
-                #---start doing sells
+                sleep(1)
                 driver.execute_script('''ChangeLanguage( 'english' );''')
                 sleep(1)
                 GotoPage(driver)##load inv & scroll
@@ -1041,8 +1061,11 @@ class Menus():
                         name = ["",""]
                         gname = ["",""]
                         try:##find card name
-                            name[0] = driver.find_element(By.XPATH,"//h1[@id='iteminfo0_item_name']").text
-                            gname[0] = driver.find_element(By.XPATH,"//div[@id='iteminfo0_game_info']//div[3]").text
+                            WebDriverWait(driver, 60).until(ec.visibility_of_element_located((By.XPATH,"//h1[@id='iteminfo0_item_name']")))
+                            WebDriverWait(driver, 60).until(ec.visibility_of_element_located((By.XPATH,"//div[@id='iteminfo0_game_info']//div[3]")))
+
+                            name[0] = WebDriverWait(driver, 60).until(ec.visibility_of_element_located((By.XPATH,"//h1[@id='iteminfo0_item_name']"))).text
+                            gname[0] = WebDriverWait(driver, 60).until(ec.visibility_of_element_located((By.XPATH,"//div[@id='iteminfo0_game_info']//div[3]"))).text
                         except:
                             pass
                         try:
@@ -1113,29 +1136,31 @@ class Menus():
                 print("BROWSER CONNECTION LOST")
             except Exception as e:
                 logging.error(e)
-                messagebox.showerror(title="Error", message="Unexpected error")
 
+                messagebox.showerror(title="Error", message="Unexpected error")
 
         def Get_inventory_grid(driver,num):
             sleep(0.5)
-            print("SEARCHING FOR GRID...")
             if num == 1:
                 if Get_number(driver)%25 == 0 and Get_number(driver)!=0:
                     Functions.fnd(driver,"//a[@id='pagebtn_next']").click()
                     SETTINGS["IPAGE"]+=1
+            element = WebDriverWait(driver, 60).until(ec.visibility_of_element_located((By.XPATH,"//div[@class='itemHolder']")))
             invetorygrid = driver.find_elements(By.XPATH,"//div[@class='itemHolder']")
             invetorygrid[Get_number(driver)].click()
-            print("GRID FOUND")
         
         def Get_number(driver):
-            if SETTINGS["GRID"] == 0:
+            if SETTINGS["GRID"] == None:
                 try:
-                    gems = driver.find_element(By.XPATH,"//h1[@id='iteminfo1_item_name']").text.split(" ")[1]
-                    if gems == "Gems" or gems == "Gemas":
-                        SETTINGS["GRID"] = 1
-                    else:
-                        SETTINGS["GRID"] = 0
-                except IndexError:
+                    element = WebDriverWait(driver, 60).until(ec.visibility_of_element_located((By.XPATH,"//div[@class='itemHolder']")))
+                    '//*[@id="iteminfo0_item_type"]'
+                    '//*[@id="iteminfo1_item_type"]'
+                    # gems = driver.find_element(By.XPATH,"//h1[@id='iteminfo1_item_name']").text.split(" ")[1]
+                    # if gems == "Gems" or gems == "Gemas":
+                    #     SETTINGS["GRID"] = 1
+                    # else:
+                    #     SETTINGS["GRID"] = 0
+                except :
                     SETTINGS["GRID"] = 0
             return SETTINGS["GRID"]
         
@@ -1157,8 +1182,10 @@ class Menus():
             if driver.find_element(By.XPATH,("//div[@id='market_sell_dialog_error']")).text == "You must agree to the terms of the Steam Subscriber Agreement to sell this item.":
                 Functions.fnd(driver,"//input[@id='market_sell_dialog_accept_ssa']").click()##checkbox
                 Functions.fnd(driver,"//a[@id='market_sell_dialog_accept']").click()##btn put for sale 
-            sleep(0.5)
-            Functions.fnd(driver,"//a[@id='market_sell_dialog_ok']").click()##btn ok 
+            # sleep(0.5)
+            btnok = WebDriverWait(driver, 60).until(ec.visibility_of_element_located((By.XPATH,"//a[@id='market_sell_dialog_ok']")))
+            btnok.click()
+            # Functions.fnd(driver,"//a[@id='market_sell_dialog_ok']").click()##btn ok 
             if driver.find_element(By.XPATH,("//div[@id='market_sell_dialog_error']")).text == "You already have a listing for this item pending confirmation. Please confirm or cancel the existing listing.":
                 Functions.fnd(driver,"//div[@id='market_sell_dialog']//div[@class='newmodal_close']").click()##close modal
                 SETTINGS["GRID"]+=1
@@ -1170,7 +1197,6 @@ class Menus():
                     print("***************************************************MAX CONFIRMATIONS REACHED***********************************************")
                     print("*********************************************PLEASE CONFIRM THE CARDS AND RESTART******************************************")
                 else:
-                    sleep(0.5)
                     try:
                         element = WebDriverWait(driver, 60).until(ec.visibility_of_element_located((By.XPATH,"//div[@class='newmodal_buttons']//span")))##2fa x btn 
                         element.click()
@@ -1208,10 +1234,8 @@ class Menus():
                     connection.commit()
                     cursor.close()
                     connection.close()
-                    
                     #DB
                     print("SOLD")
-                    sleep(0.5)
 
         Backbt = Button(win, text="<", fg=SETTINGS["TXT_COLOR"], cursor="hand2", bg=SETTINGS["BG_COLOR"], command=back)
         Backbt.place(x=0,y=0,width=POX_X_SPACING, height=POX_Y_SPACING)
